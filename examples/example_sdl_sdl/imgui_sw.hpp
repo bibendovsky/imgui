@@ -14,7 +14,8 @@
 
 #include <cstdint>
 
-namespace imgui_sw {
+namespace imgui_sw
+{
 
 struct SwOptions
 {

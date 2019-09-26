@@ -11,34 +11,37 @@
 
 #include "imgui.h"
 
-namespace imgui_sw {
-namespace {
+
+namespace imgui_sw
+{
+namespace
+{
 
 struct Stats
 {
-	int    uniform_triangle_pixels            = 0;
-	int    textured_triangle_pixels           = 0;
-	int    gradient_triangle_pixels           = 0;
-	int    font_pixels                        = 0;
-	double uniform_rectangle_pixels           = 0;
-	double textured_rectangle_pixels          = 0;
-	double gradient_rectangle_pixels          = 0;
+	int uniform_triangle_pixels = 0;
+	int textured_triangle_pixels = 0;
+	int gradient_triangle_pixels = 0;
+	int font_pixels = 0;
+	double uniform_rectangle_pixels = 0;
+	double textured_rectangle_pixels = 0;
+	double gradient_rectangle_pixels = 0;
 	double gradient_textured_rectangle_pixels = 0;
 };
 
 struct Texture
 {
 	const uint8_t* pixels; // 8-bit.
-	int            width;
-	int            height;
+	int width;
+	int height;
 };
 
 struct PaintTarget
 {
 	uint32_t* pixels;
-	int       width;
-	int       height;
-	ImVec2    scale; // Multiply ImGui (point) coordinates with this to get pixel coordinates.
+	int width;
+	int height;
+	ImVec2 scale; // Multiply ImGui (point) coordinates with this to get pixel coordinates.
 };
 
 // ----------------------------------------------------------------------------
@@ -83,7 +86,7 @@ struct Barycentric
 
 Barycentric operator*(const float f, const Barycentric& va)
 {
-	return { f * va.w0, f * va.w1, f * va.w2 };
+	return {f * va.w0, f * va.w1, f * va.w2};
 }
 
 void operator+=(Barycentric& a, const Barycentric& b)
@@ -95,7 +98,7 @@ void operator+=(Barycentric& a, const Barycentric& b)
 
 Barycentric operator+(const Barycentric& a, const Barycentric& b)
 {
-	return Barycentric{ a.w0 + b.w0, a.w1 + b.w1, a.w2 + b.w2 };
+	return Barycentric{a.w0 + b.w0, a.w1 + b.w1, a.w2 + b.w2};
 }
 
 // ----------------------------------------------------------------------------
@@ -138,16 +141,16 @@ ImVec4 color_convert_u32_to_float4(ImU32 in)
 {
 	const float s = 1.0f / 255.0f;
 	return ImVec4(
-		((in >> IM_COL32_R_SHIFT) & 0xFF) * s,
-		((in >> IM_COL32_G_SHIFT) & 0xFF) * s,
-		((in >> IM_COL32_B_SHIFT) & 0xFF) * s,
-		((in >> IM_COL32_A_SHIFT) & 0xFF) * s);
+		((in >> IM_COL32_R_SHIFT) & 0xFF)* s,
+		((in >> IM_COL32_G_SHIFT) & 0xFF)* s,
+		((in >> IM_COL32_B_SHIFT) & 0xFF)* s,
+		((in >> IM_COL32_A_SHIFT) & 0xFF)* s);
 }
 
 ImU32 color_convert_float4_to_u32(const ImVec4& in)
 {
 	ImU32 out;
-	out  = uint32_t(in.x * 255.0f + 0.5f) << IM_COL32_R_SHIFT;
+	out = uint32_t(in.x * 255.0f + 0.5f) << IM_COL32_R_SHIFT;
 	out |= uint32_t(in.y * 255.0f + 0.5f) << IM_COL32_G_SHIFT;
 	out |= uint32_t(in.z * 255.0f + 0.5f) << IM_COL32_B_SHIFT;
 	out |= uint32_t(in.w * 255.0f + 0.5f) << IM_COL32_A_SHIFT;
@@ -185,13 +188,19 @@ Point as_point(ImVec2 v)
 
 float min3(float a, float b, float c)
 {
-	if (a < b && a < c) { return a; }
+	if (a < b&& a < c)
+	{
+		return a;
+	}
 	return b < c ? b : c;
 }
 
 float max3(float a, float b, float c)
 {
-	if (a > b && a > c) { return a; }
+	if (a > b&& a > c)
+	{
+		return a;
+	}
 	return b > c ? b : c;
 }
 
@@ -202,7 +211,7 @@ float barycentric(const ImVec2& a, const ImVec2& b, const ImVec2& point)
 
 inline uint8_t sample_texture(const Texture& texture, const ImVec2& uv)
 {
-	int tx = static_cast<int>(uv.x * (texture.width  - 1.0f) + 0.5f);
+	int tx = static_cast<int>(uv.x * (texture.width - 1.0f) + 0.5f);
 	int ty = static_cast<int>(uv.y * (texture.height - 1.0f) + 0.5f);
 
 	// Clamp to inside of texture:
@@ -216,10 +225,10 @@ inline uint8_t sample_texture(const Texture& texture, const ImVec2& uv)
 
 void paint_uniform_rectangle(
 	const PaintTarget& target,
-	const ImVec2&      min_f,
-	const ImVec2&      max_f,
-	const ColorInt&    color,
-	Stats*             stats)
+	const ImVec2& min_f,
+	const ImVec2& max_f,
+	const ColorInt& color,
+	Stats* stats)
 {
 	// Integer bounding box [min, max):
 	int min_x_i = static_cast<int>(target.scale.x * min_f.x + 0.5f);
@@ -239,10 +248,13 @@ void paint_uniform_rectangle(
 	uint32_t last_target_pixel = target.pixels[min_y_i * target.width + min_x_i];
 	uint32_t last_output = blend(ColorInt(last_target_pixel), color).toUint32();
 
-	for (int y = min_y_i; y < max_y_i; ++y) {
-		for (int x = min_x_i; x < max_x_i; ++x) {
+	for (int y = min_y_i; y < max_y_i; ++y)
+	{
+		for (int x = min_x_i; x < max_x_i; ++x)
+		{
 			uint32_t& target_pixel = target.pixels[y * target.width + x];
-			if (target_pixel == last_target_pixel) {
+			if (target_pixel == last_target_pixel)
+			{
 				target_pixel = last_output;
 				continue;
 			}
@@ -255,11 +267,11 @@ void paint_uniform_rectangle(
 
 void paint_uniform_textured_rectangle(
 	const PaintTarget& target,
-	const Texture&     texture,
-	const ImVec4&      clip_rect,
-	const ImDrawVert&  min_v,
-	const ImDrawVert&  max_v,
-	Stats*             stats)
+	const Texture& texture,
+	const ImVec4& clip_rect,
+	const ImDrawVert& min_v,
+	const ImDrawVert& max_v,
+	Stats* stats)
 {
 	const ImVec2 min_p = ImVec2(target.scale.x * min_v.pos.x, target.scale.y * min_v.pos.y);
 	const ImVec2 max_p = ImVec2(target.scale.x * max_v.pos.x, target.scale.y * max_v.pos.y);
@@ -291,7 +303,7 @@ void paint_uniform_textured_rectangle(
 	stats->font_pixels += (max_x_i - min_x_i) * (max_y_i - min_y_i);
 
 	const auto topleft = ImVec2(min_x_i + 0.5f * target.scale.x,
-	                            min_y_i + 0.5f * target.scale.y);
+		min_y_i + 0.5f * target.scale.y);
 
 	const ImVec2 delta_uv_per_pixel = {
 		(max_v.uv.x - min_v.uv.x) / (max_p.x - min_p.x),
@@ -303,15 +315,21 @@ void paint_uniform_textured_rectangle(
 	};
 	ImVec2 current_uv = uv_topleft;
 
-	for (int y = min_y_i; y < max_y_i; ++y, current_uv.y += delta_uv_per_pixel.y) {
+	for (int y = min_y_i; y < max_y_i; ++y, current_uv.y += delta_uv_per_pixel.y)
+	{
 		current_uv.x = uv_topleft.x;
-		for (int x = min_x_i; x < max_x_i; ++x, current_uv.x += delta_uv_per_pixel.x) {
+		for (int x = min_x_i; x < max_x_i; ++x, current_uv.x += delta_uv_per_pixel.x)
+		{
 			uint32_t& target_pixel = target.pixels[y * target.width + x];
 			const uint8_t texel = sample_texture(texture, current_uv);
 
 			// The font texture is all black or all white, so optimize for this:
-			if (texel == 0) { continue; }
-			if (texel == 255) {
+			if (texel == 0)
+			{
+				continue;
+			}
+			if (texel == 255)
+			{
 				target_pixel = min_v.col;
 				continue;
 			}
@@ -337,19 +355,22 @@ bool is_dominant_edge(ImVec2 edge)
 // Handles triangles in any winding order (CW/CCW)
 void paint_triangle(
 	const PaintTarget& target,
-	const Texture*     texture,
-	const ImVec4&      clip_rect,
-	const ImDrawVert&  v0,
-	const ImDrawVert&  v1,
-	const ImDrawVert&  v2,
-	Stats*             stats)
+	const Texture* texture,
+	const ImVec4& clip_rect,
+	const ImDrawVert& v0,
+	const ImDrawVert& v1,
+	const ImDrawVert& v2,
+	Stats* stats)
 {
 	const ImVec2 p0 = ImVec2(target.scale.x * v0.pos.x, target.scale.y * v0.pos.y);
 	const ImVec2 p1 = ImVec2(target.scale.x * v1.pos.x, target.scale.y * v1.pos.y);
 	const ImVec2 p2 = ImVec2(target.scale.x * v2.pos.x, target.scale.y * v2.pos.y);
 
 	const auto rect_area = barycentric(p0, p1, p2); // Can be positive or negative depending on winding order
-	if (rect_area == 0.0f) { return; }
+	if (rect_area == 0.0f)
+	{
+		return;
+	}
 	// if (rect_area < 0.0f) { return paint_triangle(target, texture, clip_rect, v0, v2, v1, stats); }
 
 	// Find bounding box:
@@ -380,7 +401,7 @@ void paint_triangle(
 	// Set up interpolation of barycentric coordinates:
 
 	const auto topleft = ImVec2(min_x_i + 0.5f * target.scale.x,
-	                            min_y_i + 0.5f * target.scale.y);
+		min_y_i + 0.5f * target.scale.y);
 	const auto dx = ImVec2(1, 0);
 	const auto dy = ImVec2(0, 1);
 
@@ -396,14 +417,14 @@ void paint_triangle(
 	const auto w1_dy = barycentric(p2, p0, topleft + dy) - w1_topleft;
 	const auto w2_dy = barycentric(p0, p1, topleft + dy) - w2_topleft;
 
-	const Barycentric bary_0 { 1, 0, 0 };
-	const Barycentric bary_1 { 0, 1, 0 };
-	const Barycentric bary_2 { 0, 0, 1 };
+	const Barycentric bary_0{1, 0, 0};
+	const Barycentric bary_1{0, 1, 0};
+	const Barycentric bary_2{0, 0, 1};
 
 	const auto inv_area = 1 / rect_area;
 	const Barycentric bary_topleft = inv_area * (w0_topleft * bary_0 + w1_topleft * bary_1 + w2_topleft * bary_2);
-	const Barycentric bary_dx      = inv_area * (w0_dx      * bary_0 + w1_dx      * bary_1 + w2_dx      * bary_2);
-	const Barycentric bary_dy      = inv_area * (w0_dy      * bary_0 + w1_dy      * bary_1 + w2_dy      * bary_2);
+	const Barycentric bary_dx = inv_area * (w0_dx * bary_0 + w1_dx * bary_1 + w2_dx * bary_2);
+	const Barycentric bary_dy = inv_area * (w0_dy * bary_0 + w1_dy * bary_1 + w2_dy * bary_2);
 
 	Barycentric bary_current_row = bary_topleft;
 
@@ -432,12 +453,14 @@ void paint_triangle(
 	uint32_t last_target_pixel = 0;
 	uint32_t last_output = blend(ColorInt(last_target_pixel), ColorInt(v0.col)).toUint32();
 
-	for (int y = min_y_i; y < max_y_i; ++y) {
+	for (int y = min_y_i; y < max_y_i; ++y)
+	{
 		auto bary = bary_current_row;
 
 		bool has_been_inside_this_row = false;
 
-		for (int x = min_x_i; x < max_x_i; ++x) {
+		for (int x = min_x_i; x < max_x_i; ++x)
+		{
 			const auto w0 = bary.w0;
 			const auto w1 = bary.w1;
 			const auto w2 = bary.w2;
@@ -449,10 +472,14 @@ void paint_triangle(
 				const auto w0i = sign * orient2d(p1i, p2i, p) + bias0i;
 				const auto w1i = sign * orient2d(p2i, p0i, p) + bias1i;
 				const auto w2i = sign * orient2d(p0i, p1i, p) + bias2i;
-				if (w0i < 0 || w1i < 0 || w2i < 0) {
-					if (has_been_inside_this_row) {
+				if (w0i < 0 || w1i < 0 || w2i < 0)
+				{
+					if (has_been_inside_this_row)
+					{
 						break; // Gives a nice 10% speedup
-					} else {
+					}
+					else
+					{
 						continue;
 					}
 				}
@@ -461,9 +488,11 @@ void paint_triangle(
 
 			uint32_t& target_pixel = target.pixels[y * target.width + x];
 
-			if (has_uniform_color && !texture) {
+			if (has_uniform_color && !texture)
+			{
 				stats->uniform_triangle_pixels += 1;
-				if (target_pixel == last_target_pixel) {
+				if (target_pixel == last_target_pixel)
+				{
 					target_pixel = last_output;
 					continue;
 				}
@@ -475,21 +504,29 @@ void paint_triangle(
 
 			ImVec4 src_color;
 
-			if (has_uniform_color) {
+			if (has_uniform_color)
+			{
 				src_color = c0;
-			} else {
+			}
+			else
+			{
 				stats->gradient_triangle_pixels += 1;
 				src_color = w0 * c0 + w1 * c1 + w2 * c2;
 			}
 
-			if (texture) {
+			if (texture)
+			{
 				stats->textured_triangle_pixels += 1;
 				const ImVec2 uv = w0 * v0.uv + w1 * v1.uv + w2 * v2.uv;
 				src_color.w *= sample_texture(*texture, uv) / 255.0f;
 			}
 
-			if (src_color.w <= 0.0f) { continue; } // Transparent.
-			if (src_color.w >= 1.0f) {
+			if (src_color.w <= 0.0f)
+			{
+				continue;
+			} // Transparent.
+			if (src_color.w >= 1.0f)
+			{
 				// Opaque, no blending needed:
 				target_pixel = color_convert_float4_to_u32(src_color);
 				continue;
@@ -506,11 +543,11 @@ void paint_triangle(
 
 void paint_draw_cmd(
 	const PaintTarget& target,
-	const ImDrawVert*  vertices,
-	const ImDrawIdx*   idx_buffer,
-	const ImDrawCmd&   pcmd,
-	const SwOptions&   options,
-	Stats*             stats)
+	const ImDrawVert* vertices,
+	const ImDrawIdx* idx_buffer,
+	const ImDrawCmd& pcmd,
+	const SwOptions& options,
+	Stats* stats)
 {
 	const auto texture = reinterpret_cast<const Texture*>(pcmd.TextureId);
 	assert(texture);
@@ -518,7 +555,8 @@ void paint_draw_cmd(
 	// ImGui uses the first pixel for "white".
 	const ImVec2 white_uv = ImVec2(0.5f / texture->width, 0.5f / texture->height);
 
-	for (unsigned i = 0; i + 3 <= pcmd.ElemCount; ) {
+	for (unsigned i = 0; i + 3 <= pcmd.ElemCount; )
+	{
 		const ImDrawVert& v0 = vertices[idx_buffer[i + 0]];
 		const ImDrawVert& v1 = vertices[idx_buffer[i + 1]];
 		const ImDrawVert& v2 = vertices[idx_buffer[i + 2]];
@@ -526,17 +564,18 @@ void paint_draw_cmd(
 		// Text is common, and is made of textured rectangles. So let's optimize for it.
 		// This assumes the ImGui way to layout text does not change.
 		if (options.optimize_text && i + 6 <= pcmd.ElemCount &&
-		    idx_buffer[i + 3] == idx_buffer[i + 0] && idx_buffer[i + 4] == idx_buffer[i + 2]) {
+			idx_buffer[i + 3] == idx_buffer[i + 0] && idx_buffer[i + 4] == idx_buffer[i + 2])
+		{
 			const ImDrawVert& v3 = vertices[idx_buffer[i + 5]];
 
 			if (v0.pos.x == v3.pos.x &&
-			    v1.pos.x == v2.pos.x &&
-			    v0.pos.y == v1.pos.y &&
-			    v2.pos.y == v3.pos.y &&
-			    v0.uv.x == v3.uv.x &&
-			    v1.uv.x == v2.uv.x &&
-			    v0.uv.y == v1.uv.y &&
-			    v2.uv.y == v3.uv.y)
+				v1.pos.x == v2.pos.x &&
+				v0.pos.y == v1.pos.y &&
+				v2.pos.y == v3.pos.y &&
+				v0.uv.x == v3.uv.x &&
+				v1.uv.x == v2.uv.x &&
+				v0.uv.y == v1.uv.y &&
+				v2.uv.y == v3.uv.y)
 			{
 				const bool has_uniform_color =
 					v0.col == v1.col &&
@@ -560,7 +599,8 @@ void paint_draw_cmd(
 
 		// A lot of the big stuff are uniformly colored rectangles,
 		// so we can save a lot of CPU by detecting them:
-		if (options.optimize_rectangles && i + 6 <= pcmd.ElemCount) {
+		if (options.optimize_rectangles && i + 6 <= pcmd.ElemCount)
+		{
 			const ImDrawVert& v3 = vertices[idx_buffer[i + 3]];
 			const ImDrawVert& v4 = vertices[idx_buffer[i + 4]];
 			const ImDrawVert& v5 = vertices[idx_buffer[i + 5]];
@@ -607,23 +647,35 @@ void paint_draw_cmd(
 				max.x = std::min(max.x, pcmd.ClipRect.z - 0.5f);
 				max.y = std::min(max.y, pcmd.ClipRect.w - 0.5f);
 
-				if (max.x < min.x || max.y < min.y) { i+=6; continue; } // Completely clipped
+				if (max.x < min.x || max.y < min.y)
+				{
+					i += 6; continue;
+				} // Completely clipped
 
 				const auto num_pixels = (max.x - min.x) * (max.y - min.y) * target.scale.x * target.scale.y;
 
-				if (has_uniform_color) {
-					if (has_texture) {
+				if (has_uniform_color)
+				{
+					if (has_texture)
+					{
 						stats->textured_rectangle_pixels += num_pixels;
-					} else {
+					}
+					else
+					{
 						paint_uniform_rectangle(target, min, max, ColorInt(v0.col), stats);
 						i += 6;
 						continue;
 					}
-				} else {
-					if (has_texture) {
+				}
+				else
+				{
+					if (has_texture)
+					{
 						// I have never encountered these.
 						stats->gradient_textured_rectangle_pixels += num_pixels;
-					} else {
+					}
+					else
+					{
 						// Color picker. TODO: Optimize
 						stats->gradient_rectangle_pixels += num_pixels;
 					}
@@ -645,9 +697,12 @@ void paint_draw_list(const PaintTarget& target, const ImDrawList* cmd_list, cons
 	for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.size(); cmd_i++)
 	{
 		const ImDrawCmd& pcmd = cmd_list->CmdBuffer[cmd_i];
-		if (pcmd.UserCallback) {
+		if (pcmd.UserCallback)
+		{
 			pcmd.UserCallback(cmd_list, &pcmd);
-		} else {
+		}
+		else
+		{
 			paint_draw_cmd(target, vertices, idx_buffer, pcmd, options, stats);
 		}
 		idx_buffer += pcmd.ElemCount;
@@ -697,7 +752,8 @@ void paint_imgui(uint32_t* pixels, int width_pixels, int height_pixels, const Sw
 	const ImDrawData* draw_data = ImGui::GetDrawData();
 
 	s_stats = Stats{};
-	for (int i = 0; i < draw_data->CmdListsCount; ++i) {
+	for (int i = 0; i < draw_data->CmdListsCount; ++i)
+	{
 		paint_draw_list(target, draw_data->CmdLists[i], options, &s_stats);
 	}
 }
@@ -720,10 +776,10 @@ bool show_options(SwOptions* io_options)
 
 void show_stats()
 {
-	ImGui::Text("uniform_triangle_pixels:            %7d",   s_stats.uniform_triangle_pixels);
-	ImGui::Text("textured_triangle_pixels:           %7d",   s_stats.textured_triangle_pixels);
-	ImGui::Text("gradient_triangle_pixels:           %7d",   s_stats.gradient_triangle_pixels);
-	ImGui::Text("font_pixels:                        %7d",   s_stats.font_pixels);
+	ImGui::Text("uniform_triangle_pixels:            %7d", s_stats.uniform_triangle_pixels);
+	ImGui::Text("textured_triangle_pixels:           %7d", s_stats.textured_triangle_pixels);
+	ImGui::Text("gradient_triangle_pixels:           %7d", s_stats.gradient_triangle_pixels);
+	ImGui::Text("font_pixels:                        %7d", s_stats.font_pixels);
 	ImGui::Text("uniform_rectangle_pixels:           %7.0f", s_stats.uniform_rectangle_pixels);
 	ImGui::Text("textured_rectangle_pixels:          %7.0f", s_stats.textured_rectangle_pixels);
 	ImGui::Text("gradient_rectangle_pixels:          %7.0f", s_stats.gradient_rectangle_pixels);
