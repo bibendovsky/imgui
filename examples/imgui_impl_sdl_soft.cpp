@@ -55,26 +55,26 @@
 static GLuint       g_FontTexture = 0;
 
 // Functions
-bool    ImGui_ImplSdlWs_Init()
+bool    ImGui_ImplSdlSoft_Init()
 {
 	// Setup back-end capabilities flags
 	ImGuiIO& io = ImGui::GetIO();
-	io.BackendRendererName = "imgui_impl_opengl2";
+	io.BackendRendererName = "imgui_impl_sdl_soft";
 	return true;
 }
 
-void    ImGui_ImplSdlWs_Shutdown()
+void    ImGui_ImplSdlSoft_Shutdown()
 {
-	ImGui_ImplSdlWs_DestroyDeviceObjects();
+	ImGui_ImplSdlSoft_DestroyDeviceObjects();
 }
 
-void    ImGui_ImplSdlWs_NewFrame()
+void    ImGui_ImplSdlSoft_NewFrame()
 {
 	if (!g_FontTexture)
-		ImGui_ImplSdlWs_CreateDeviceObjects();
+		ImGui_ImplSdlSoft_CreateDeviceObjects();
 }
 
-static void ImGui_ImplSdlWs_SetupRenderState(ImDrawData* draw_data, int fb_width, int fb_height)
+static void ImGui_ImplSdlSoft_SetupRenderState(ImDrawData* draw_data, int fb_width, int fb_height)
 {
 	// Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, vertex/texcoord/color pointers, polygon fill.
 	glEnable(GL_BLEND);
@@ -113,7 +113,7 @@ static void ImGui_ImplSdlWs_SetupRenderState(ImDrawData* draw_data, int fb_width
 // OpenGL2 Render function.
 // (this used to be set in io.RenderDrawListsFn and called by ImGui::Render(), but you can now call this directly from your main loop)
 // Note that this implementation is little overcomplicated because we are saving/setting up/restoring every OpenGL state explicitly, in order to be able to run within any OpenGL engine that doesn't do so.
-void ImGui_ImplSdlWs_RenderDrawData(ImDrawData* draw_data)
+void ImGui_ImplSdlSoft_RenderDrawData(ImDrawData* draw_data)
 {
 	// Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
 	int fb_width = (int)(draw_data->DisplaySize.x * draw_data->FramebufferScale.x);
@@ -129,7 +129,7 @@ void ImGui_ImplSdlWs_RenderDrawData(ImDrawData* draw_data)
 	glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_TRANSFORM_BIT);
 
 	// Setup desired GL state
-	ImGui_ImplSdlWs_SetupRenderState(draw_data, fb_width, fb_height);
+	ImGui_ImplSdlSoft_SetupRenderState(draw_data, fb_width, fb_height);
 
 	// Will project scissor/clipping rectangles into framebuffer space
 	ImVec2 clip_off = draw_data->DisplayPos;         // (0,0) unless using multi-viewports
@@ -153,7 +153,7 @@ void ImGui_ImplSdlWs_RenderDrawData(ImDrawData* draw_data)
 				// User callback, registered via ImDrawList::AddCallback()
 				// (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.)
 				if (pcmd->UserCallback == ImDrawCallback_ResetRenderState)
-					ImGui_ImplSdlWs_SetupRenderState(draw_data, fb_width, fb_height);
+					ImGui_ImplSdlSoft_SetupRenderState(draw_data, fb_width, fb_height);
 				else
 					pcmd->UserCallback(cmd_list, pcmd);
 			}
@@ -195,7 +195,7 @@ void ImGui_ImplSdlWs_RenderDrawData(ImDrawData* draw_data)
 	glScissor(last_scissor_box[0], last_scissor_box[1], (GLsizei)last_scissor_box[2], (GLsizei)last_scissor_box[3]);
 }
 
-bool ImGui_ImplSdlWs_CreateFontsTexture()
+bool ImGui_ImplSdlSoft_CreateFontsTexture()
 {
 	// Build texture atlas
 	ImGuiIO& io = ImGui::GetIO();
@@ -222,7 +222,7 @@ bool ImGui_ImplSdlWs_CreateFontsTexture()
 	return true;
 }
 
-void ImGui_ImplSdlWs_DestroyFontsTexture()
+void ImGui_ImplSdlSoft_DestroyFontsTexture()
 {
 	if (g_FontTexture)
 	{
@@ -233,12 +233,12 @@ void ImGui_ImplSdlWs_DestroyFontsTexture()
 	}
 }
 
-bool    ImGui_ImplSdlWs_CreateDeviceObjects()
+bool    ImGui_ImplSdlSoft_CreateDeviceObjects()
 {
-	return ImGui_ImplSdlWs_CreateFontsTexture();
+	return ImGui_ImplSdlSoft_CreateFontsTexture();
 }
 
-void    ImGui_ImplSdlWs_DestroyDeviceObjects()
+void    ImGui_ImplSdlSoft_DestroyDeviceObjects()
 {
-	ImGui_ImplSdlWs_DestroyFontsTexture();
+	ImGui_ImplSdlSoft_DestroyFontsTexture();
 }

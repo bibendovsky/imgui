@@ -48,7 +48,7 @@ int main(int, char**)
 
 	// Setup Platform/Renderer bindings
 	ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
-	ImGui_ImplSdlWs_Init();
+	ImGui_ImplSdlSoft_Init();
 
 	// Load Fonts
 	// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -88,7 +88,7 @@ int main(int, char**)
 		}
 
 		// Start the Dear ImGui frame
-		ImGui_ImplSdlWs_NewFrame();
+		ImGui_ImplSdlSoft_NewFrame();
 		ImGui_ImplSDL2_NewFrame(window);
 		ImGui::NewFrame();
 
@@ -135,12 +135,12 @@ int main(int, char**)
 		glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
 		glClear(GL_COLOR_BUFFER_BIT);
 		//glUseProgram(0); // You may want this if using this code in an OpenGL 3+ context where shaders may be bound
-		ImGui_ImplSdlWs_RenderDrawData(ImGui::GetDrawData());
+		ImGui_ImplSdlSoft_RenderDrawData(ImGui::GetDrawData());
 		SDL_GL_SwapWindow(window);
 	}
 
 	// Cleanup
-	ImGui_ImplSdlWs_Shutdown();
+	ImGui_ImplSdlSoft_Shutdown();
 	ImGui_ImplSDL2_Shutdown();
 	ImGui::DestroyContext();
 

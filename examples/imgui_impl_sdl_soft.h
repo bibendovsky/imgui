@@ -17,17 +17,21 @@
 // The GL2 code is unable to reset attributes or even call e.g. "glUseProgram(0)" because they don't exist in that API.
 
 
-#pragma once
+#ifndef IMGUI_IMPL_SDL_SOFT_INCLUDED
+#define IMGUI_IMPL_SDL_SOFT_INCLUDED
 
 
-IMGUI_IMPL_API bool ImGui_ImplSdlWs_Init();
-IMGUI_IMPL_API void ImGui_ImplSdlWs_Shutdown();
-IMGUI_IMPL_API void ImGui_ImplSdlWs_NewFrame();
-IMGUI_IMPL_API void ImGui_ImplSdlWs_RenderDrawData(ImDrawData* draw_data);
+IMGUI_IMPL_API bool ImGui_ImplSdlSoft_Init();
+IMGUI_IMPL_API void ImGui_ImplSdlSoft_Shutdown();
+IMGUI_IMPL_API void ImGui_ImplSdlSoft_NewFrame();
+IMGUI_IMPL_API void ImGui_ImplSdlSoft_RenderDrawData(ImDrawData* draw_data);
 
 // Called by Init/NewFrame/Shutdown
 
-IMGUI_IMPL_API bool ImGui_ImplSdlWs_CreateFontsTexture();
-IMGUI_IMPL_API void ImGui_ImplSdlWs_DestroyFontsTexture();
-IMGUI_IMPL_API bool ImGui_ImplSdlWs_CreateDeviceObjects();
-IMGUI_IMPL_API void ImGui_ImplSdlWs_DestroyDeviceObjects();
+IMGUI_IMPL_API bool ImGui_ImplSdlSoft_CreateFontsTexture();
+IMGUI_IMPL_API void ImGui_ImplSdlSoft_DestroyFontsTexture();
+IMGUI_IMPL_API bool ImGui_ImplSdlSoft_CreateDeviceObjects();
+IMGUI_IMPL_API void ImGui_ImplSdlSoft_DestroyDeviceObjects();
+
+
+#endif // IMGUI_IMPL_SDL_SOFT_INCLUDED
