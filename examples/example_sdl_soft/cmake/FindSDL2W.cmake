@@ -309,11 +309,12 @@ if (SDL2_FOUND OR SDL2W_TMP_FOUND_VC_DEV)
 			)
 		endif ()
 
-		if (WIN32 AND SDL2W_TMP_USE_STATIC)
+		if (WIN32)
 			target_link_libraries(
 				${CMAKE_FIND_PACKAGE_NAME}
 				INTERFACE
 					imm32
+					opengl32
 					setupapi
 					version
 					winmm

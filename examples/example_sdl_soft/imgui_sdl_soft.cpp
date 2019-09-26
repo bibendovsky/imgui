@@ -3,7 +3,7 @@
 //   This software is dual-licensed to the public domain and under the following
 //   license: you are granted a perpetual, irrevocable license to copy, modify,
 //   publish, and distribute this file as you see fit.
-#include "imgui_sw.hpp"
+#include "imgui_sdl_soft.h"
 
 #include <algorithm>
 #include <cmath>

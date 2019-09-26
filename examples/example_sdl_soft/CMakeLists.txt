@@ -5,7 +5,7 @@
 
 
 cmake_minimum_required(VERSION 3.1.3 FATAL_ERROR)
-project(imgui_example_sdl_sdl VERSION 1.0.0 LANGUAGES CXX)
+project(imgui_example_sdl_soft VERSION 1.0.0 LANGUAGES CXX)
 
 
 # Find packages.
@@ -52,7 +52,7 @@ target_link_libraries(
 	${PROJECT_NAME}
 	PRIVATE
 		SDL2W::SDL2W
-		opengl32
+#		opengl32
 )
 
 # Linking options.
@@ -80,8 +80,8 @@ target_sources(
 	PRIVATE
 		../../imgui.h
 		../imgui_impl_sdl.h
-		../imgui_impl_sdl_ws.h
-		imgui_sw.hpp
+		../imgui_impl_sdl_soft.h
+		imgui_sdl_soft.h
 )
 
 # Source files.
@@ -94,8 +94,8 @@ target_sources(
 		../../imgui_draw.cpp
 		../../imgui_widgets.cpp
 		../imgui_impl_sdl.cpp
-		../imgui_impl_sdl_ws.cpp
-		imgui_sw.cpp
+		../imgui_impl_sdl_soft.cpp
+		imgui_sdl_soft.cpp
 		main.cpp
 )
 
