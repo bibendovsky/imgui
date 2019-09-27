@@ -23,12 +23,6 @@ using ColorBuffer = std::vector<std::uint32_t>;
 extern ColorBuffer color_buffer_;
 
 
-struct SwOptions
-{
-	bool optimize_text = true;  // No reason to turn this off.
-	bool optimize_rectangles = true; // No reason to turn this off.
-};
-
 /// Optional: tweak ImGui style to make it render faster.
 void make_style_fast();
 
@@ -42,15 +36,10 @@ void bind_imgui_painting();
 /// Change with IMGUI_USE_BGRA_PACKED_COLOR.
 /// If width/height differs from ImGui::GetIO().DisplaySize then
 /// the function scales the UI to fit the given pixel buffer.
-void paint_imgui(uint32_t* pixels, int width_pixels, int height_pixels, const SwOptions& options = {});
+void paint_imgui(uint32_t* pixels, int width_pixels, int height_pixels);
 
 /// Free the resources allocated by bind_imgui_painting.
 void unbind_imgui_painting();
 
-/// Show ImGui controls for rendering options if you want to.
-bool show_options(SwOptions* io_options);
 
-/// Show rendering stats in an ImGui window if you want to.
-void show_stats();
-
-} // namespace imgui_sw
+} // imgui_sw

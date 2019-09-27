@@ -22,18 +22,6 @@ ColorBuffer color_buffer_;
 namespace
 {
 
-struct Stats
-{
-	int uniform_triangle_pixels = 0;
-	int textured_triangle_pixels = 0;
-	int gradient_triangle_pixels = 0;
-	int font_pixels = 0;
-	double uniform_rectangle_pixels = 0;
-	double textured_rectangle_pixels = 0;
-	double gradient_rectangle_pixels = 0;
-	double gradient_textured_rectangle_pixels = 0;
-};
-
 struct Texture
 {
 	const uint8_t* pixels; // 8-bit.
@@ -232,8 +220,7 @@ void paint_uniform_rectangle(
 	const PaintTarget& target,
 	const ImVec2& min_f,
 	const ImVec2& max_f,
-	const ColorInt& color,
-	Stats* stats)
+	const ColorInt& color)
 {
 	// Integer bounding box [min, max):
 	int min_x_i = static_cast<int>(target.scale.x * min_f.x + 0.5f);
@@ -246,8 +233,6 @@ void paint_uniform_rectangle(
 	min_y_i = std::max(min_y_i, 0);
 	max_x_i = std::min(max_x_i, target.width);
 	max_y_i = std::min(max_y_i, target.height);
-
-	stats->uniform_rectangle_pixels += (max_x_i - min_x_i) * (max_y_i - min_y_i);
 
 	// We often blend the same colors over and over again, so optimize for this (saves 25% total cpu):
 	uint32_t last_target_pixel = target.pixels[min_y_i * target.width + min_x_i];
@@ -275,8 +260,7 @@ void paint_uniform_textured_rectangle(
 	const Texture& texture,
 	const ImVec4& clip_rect,
 	const ImDrawVert& min_v,
-	const ImDrawVert& max_v,
-	Stats* stats)
+	const ImDrawVert& max_v)
 {
 	const ImVec2 min_p = ImVec2(target.scale.x * min_v.pos.x, target.scale.y * min_v.pos.y);
 	const ImVec2 max_p = ImVec2(target.scale.x * max_v.pos.x, target.scale.y * max_v.pos.y);
@@ -304,8 +288,6 @@ void paint_uniform_textured_rectangle(
 	min_y_i = std::max(min_y_i, 0);
 	max_x_i = std::min(max_x_i, target.width);
 	max_y_i = std::min(max_y_i, target.height);
-
-	stats->font_pixels += (max_x_i - min_x_i) * (max_y_i - min_y_i);
 
 	const auto topleft = ImVec2(min_x_i + 0.5f * target.scale.x,
 		min_y_i + 0.5f * target.scale.y);
@@ -364,8 +346,7 @@ void paint_triangle(
 	const ImVec4& clip_rect,
 	const ImDrawVert& v0,
 	const ImDrawVert& v1,
-	const ImDrawVert& v2,
-	Stats* stats)
+	const ImDrawVert& v2)
 {
 	const ImVec2 p0 = ImVec2(target.scale.x * v0.pos.x, target.scale.y * v0.pos.y);
 	const ImVec2 p1 = ImVec2(target.scale.x * v1.pos.x, target.scale.y * v1.pos.y);
@@ -495,7 +476,6 @@ void paint_triangle(
 
 			if (has_uniform_color && !texture)
 			{
-				stats->uniform_triangle_pixels += 1;
 				if (target_pixel == last_target_pixel)
 				{
 					target_pixel = last_output;
@@ -515,13 +495,11 @@ void paint_triangle(
 			}
 			else
 			{
-				stats->gradient_triangle_pixels += 1;
 				src_color = w0 * c0 + w1 * c1 + w2 * c2;
 			}
 
 			if (texture)
 			{
-				stats->textured_triangle_pixels += 1;
 				const ImVec2 uv = w0 * v0.uv + w1 * v1.uv + w2 * v2.uv;
 				src_color.w *= sample_texture(*texture, uv) / 255.0f;
 			}
@@ -550,9 +528,7 @@ void paint_draw_cmd(
 	const PaintTarget& target,
 	const ImDrawVert* vertices,
 	const ImDrawIdx* idx_buffer,
-	const ImDrawCmd& pcmd,
-	const SwOptions& options,
-	Stats* stats)
+	const ImDrawCmd& pcmd)
 {
 	const auto texture = reinterpret_cast<const Texture*>(pcmd.TextureId);
 	assert(texture);
@@ -568,8 +544,9 @@ void paint_draw_cmd(
 
 		// Text is common, and is made of textured rectangles. So let's optimize for it.
 		// This assumes the ImGui way to layout text does not change.
-		if (options.optimize_text && i + 6 <= pcmd.ElemCount &&
-			idx_buffer[i + 3] == idx_buffer[i + 0] && idx_buffer[i + 4] == idx_buffer[i + 2])
+		if (i + 6 <= pcmd.ElemCount &&
+			idx_buffer[i + 3] == idx_buffer[i + 0] &&
+			idx_buffer[i + 4] == idx_buffer[i + 2])
 		{
 			const ImDrawVert& v3 = vertices[idx_buffer[i + 5]];
 
@@ -595,7 +572,7 @@ void paint_draw_cmd(
 
 				if (has_uniform_color && has_texture)
 				{
-					paint_uniform_textured_rectangle(target, *texture, pcmd.ClipRect, v0, v2, stats);
+					paint_uniform_textured_rectangle(target, *texture, pcmd.ClipRect, v0, v2);
 					i += 6;
 					continue;
 				}
@@ -604,7 +581,7 @@ void paint_draw_cmd(
 
 		// A lot of the big stuff are uniformly colored rectangles,
 		// so we can save a lot of CPU by detecting them:
-		if (options.optimize_rectangles && i + 6 <= pcmd.ElemCount)
+		if (i + 6 <= pcmd.ElemCount)
 		{
 			const ImDrawVert& v3 = vertices[idx_buffer[i + 3]];
 			const ImDrawVert& v4 = vertices[idx_buffer[i + 4]];
@@ -663,11 +640,11 @@ void paint_draw_cmd(
 				{
 					if (has_texture)
 					{
-						stats->textured_rectangle_pixels += num_pixels;
+						//
 					}
 					else
 					{
-						paint_uniform_rectangle(target, min, max, ColorInt(v0.col), stats);
+						paint_uniform_rectangle(target, min, max, ColorInt(v0.col));
 						i += 6;
 						continue;
 					}
@@ -677,24 +654,22 @@ void paint_draw_cmd(
 					if (has_texture)
 					{
 						// I have never encountered these.
-						stats->gradient_textured_rectangle_pixels += num_pixels;
 					}
 					else
 					{
 						// Color picker. TODO: Optimize
-						stats->gradient_rectangle_pixels += num_pixels;
 					}
 				}
 			}
 		}
 
 		const bool has_texture = (v0.uv != white_uv || v1.uv != white_uv || v2.uv != white_uv);
-		paint_triangle(target, has_texture ? texture : nullptr, pcmd.ClipRect, v0, v1, v2, stats);
+		paint_triangle(target, has_texture ? texture : nullptr, pcmd.ClipRect, v0, v1, v2);
 		i += 3;
 	}
 }
 
-void paint_draw_list(const PaintTarget& target, const ImDrawList* cmd_list, const SwOptions& options, Stats* stats)
+void paint_draw_list(const PaintTarget& target, const ImDrawList* cmd_list)
 {
 	const ImDrawIdx* idx_buffer = &cmd_list->IdxBuffer[0];
 	const ImDrawVert* vertices = cmd_list->VtxBuffer.Data;
@@ -708,7 +683,7 @@ void paint_draw_list(const PaintTarget& target, const ImDrawList* cmd_list, cons
 		}
 		else
 		{
-			paint_draw_cmd(target, vertices, idx_buffer, pcmd, options, stats);
+			paint_draw_cmd(target, vertices, idx_buffer, pcmd);
 		}
 		idx_buffer += pcmd.ElemCount;
 	}
@@ -746,9 +721,7 @@ void bind_imgui_painting()
 	io.Fonts->TexID = texture;
 }
 
-static Stats s_stats; // TODO: pass as an argument?
-
-void paint_imgui(uint32_t* pixels, int width_pixels, int height_pixels, const SwOptions& options)
+void paint_imgui(uint32_t* pixels, int width_pixels, int height_pixels)
 {
 	const float width_points = ImGui::GetIO().DisplaySize.x;
 	const float height_points = ImGui::GetIO().DisplaySize.y;
@@ -756,10 +729,9 @@ void paint_imgui(uint32_t* pixels, int width_pixels, int height_pixels, const Sw
 	PaintTarget target{pixels, width_pixels, height_pixels, scale};
 	const ImDrawData* draw_data = ImGui::GetDrawData();
 
-	s_stats = Stats{};
 	for (int i = 0; i < draw_data->CmdListsCount; ++i)
 	{
-		paint_draw_list(target, draw_data->CmdLists[i], options, &s_stats);
+		paint_draw_list(target, draw_data->CmdLists[i]);
 	}
 }
 
@@ -770,25 +742,5 @@ void unbind_imgui_painting()
 	io.Fonts = nullptr;
 }
 
-bool show_options(SwOptions* io_options)
-{
-	assert(io_options);
-	bool changed = false;
-	changed |= ImGui::Checkbox("optimize_text", &io_options->optimize_text);
-	changed |= ImGui::Checkbox("optimize_rectangles", &io_options->optimize_rectangles);
-	return changed;
-}
 
-void show_stats()
-{
-	ImGui::Text("uniform_triangle_pixels:            %7d", s_stats.uniform_triangle_pixels);
-	ImGui::Text("textured_triangle_pixels:           %7d", s_stats.textured_triangle_pixels);
-	ImGui::Text("gradient_triangle_pixels:           %7d", s_stats.gradient_triangle_pixels);
-	ImGui::Text("font_pixels:                        %7d", s_stats.font_pixels);
-	ImGui::Text("uniform_rectangle_pixels:           %7.0f", s_stats.uniform_rectangle_pixels);
-	ImGui::Text("textured_rectangle_pixels:          %7.0f", s_stats.textured_rectangle_pixels);
-	ImGui::Text("gradient_rectangle_pixels:          %7.0f", s_stats.gradient_rectangle_pixels);
-	ImGui::Text("gradient_textured_rectangle_pixels: %7.0f", s_stats.gradient_textured_rectangle_pixels);
-}
-
-} // namespace imgui_sw
+} // imgui_sw
