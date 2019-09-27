@@ -314,7 +314,6 @@ if (SDL2_FOUND OR SDL2W_TMP_FOUND_VC_DEV)
 				${CMAKE_FIND_PACKAGE_NAME}
 				INTERFACE
 					imm32
-					opengl32
 					setupapi
 					version
 					winmm

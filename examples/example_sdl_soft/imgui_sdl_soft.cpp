@@ -14,6 +14,11 @@
 
 namespace imgui_sw
 {
+
+
+ColorBuffer color_buffer_;
+
+
 namespace
 {
 

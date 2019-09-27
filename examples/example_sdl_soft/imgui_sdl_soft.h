@@ -13,9 +13,15 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 namespace imgui_sw
 {
+
+
+using ColorBuffer = std::vector<std::uint32_t>;
+extern ColorBuffer color_buffer_;
+
 
 struct SwOptions
 {

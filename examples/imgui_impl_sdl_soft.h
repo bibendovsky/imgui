@@ -21,6 +21,9 @@
 #define IMGUI_IMPL_SDL_SOFT_INCLUDED
 
 
+#include "imgui.h"
+
+
 IMGUI_IMPL_API bool ImGui_ImplSdlSoft_Init();
 IMGUI_IMPL_API void ImGui_ImplSdlSoft_Shutdown();
 IMGUI_IMPL_API void ImGui_ImplSdlSoft_NewFrame();
