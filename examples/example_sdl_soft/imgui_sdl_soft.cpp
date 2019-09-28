@@ -24,9 +24,9 @@ namespace
 
 struct Texture
 {
-	const ImU8* pixels; // 8-bit.
-	int width;
-	int height;
+	const ImU8* const pixels_; // 8-bit.
+	const int width_;
+	const int height_;
 
 
 	Texture(
@@ -34,37 +34,37 @@ struct Texture
 		const int width,
 		const int height)
 		:
-		pixels(pixels),
-		width(width),
-		height(height)
+		pixels_(pixels),
+		width_(width),
+		height_(height)
 	{
 	}
 };
 
 struct PaintTarget
 {
-	ImU32* pixels;
-	int width;
-	int height;
-	ImVec2 scale; // Multiply ImGui (point) coordinates with this to get pixel coordinates.
+	ImU32* pixels_;
+	int width_;
+	int height_;
+	ImVec2 scale_; // Multiply ImGui (point) coordinates with this to get pixel coordinates.
 };
 
 // ----------------------------------------------------------------------------
 
 struct ColorInt
 {
-	ImU32 a;
-	ImU32 b;
-	ImU32 g;
-	ImU32 r;
+	ImU32 a_;
+	ImU32 b_;
+	ImU32 g_;
+	ImU32 r_;
 
 
 	ColorInt()
 		:
-		a(),
-		b(),
-		g(),
-		r()
+		a_(),
+		b_(),
+		g_(),
+		r_()
 	{
 	}
 
@@ -74,37 +74,38 @@ struct ColorInt
 		const ImU32 g,
 		const ImU32 r)
 		:
-		a(a),
-		b(b),
-		g(g),
-		r(r)
+		a_(a),
+		b_(b),
+		g_(g),
+		r_(r)
 	{
 	}
 
 	explicit ColorInt(
 		const ImU32 x)
 		:
-		a((x >> IM_COL32_A_SHIFT) & 0xFFU),
-		b((x >> IM_COL32_B_SHIFT) & 0xFFU),
-		g((x >> IM_COL32_G_SHIFT) & 0xFFU),
-		r((x >> IM_COL32_R_SHIFT) & 0xFFU)
+		a_((x >> IM_COL32_A_SHIFT) & 0xFFU),
+		b_((x >> IM_COL32_B_SHIFT) & 0xFFU),
+		g_((x >> IM_COL32_G_SHIFT) & 0xFFU),
+		r_((x >> IM_COL32_R_SHIFT) & 0xFFU)
 	{
 	}
 
 	ImU32 toUint32() const
 	{
-		return (a << 24U) | (b << 16U) | (g << 8U) | r;
+		return (a_ << 24U) | (b_ << 16U) | (g_ << 8U) | r_;
 	}
 }; // ColorInt
+
 
 ColorInt blend_0_x(
 	const ColorInt source)
 {
 	return ColorInt(
 		0, // Whatever.
-		(source.b * source.a) / 255,
-		(source.g * source.a) / 255,
-		(source.r * source.a) / 255
+		(source.b_ * source.a_) / 255,
+		(source.g_ * source.a_) / 255,
+		(source.r_ * source.a_) / 255
 	);
 }
 
@@ -114,9 +115,9 @@ ColorInt blend(
 {
 	return ColorInt(
 		0, // Whatever.
-		((source.b * source.a) + (target.b * (255 - source.a))) / 255,
-		((source.g * source.a) + (target.g * (255 - source.a))) / 255,
-		((source.r * source.a) + (target.r * (255 - source.a))) / 255
+		((source.b_ * source.a_) + (target.b_ * (255 - source.a_))) / 255,
+		((source.g_ * source.a_) + (target.g_ * (255 - source.a_))) / 255,
+		((source.r_ * source.a_) + (target.r_ * (255 - source.a_))) / 255
 	);
 }
 
@@ -125,9 +126,9 @@ ColorInt blend(
 
 struct Barycentric
 {
-	float w0;
-	float w1;
-	float w2;
+	float w0_;
+	float w1_;
+	float w2_;
 
 
 	Barycentric(
@@ -135,34 +136,35 @@ struct Barycentric
 		const float w1,
 		const float w2)
 		:
-		w0(w0),
-		w1(w1),
-		w2(w2)
+		w0_(w0),
+		w1_(w1),
+		w2_(w2)
 	{
 	}
 }; // Barycentric
+
 
 Barycentric operator*(
 	const float f,
 	const Barycentric& va)
 {
-	return Barycentric(f * va.w0, f * va.w1, f * va.w2);
+	return Barycentric(f * va.w0_, f * va.w1_, f * va.w2_);
 }
 
 void operator+=(
 	Barycentric& a,
 	const Barycentric& b)
 {
-	a.w0 += b.w0;
-	a.w1 += b.w1;
-	a.w2 += b.w2;
+	a.w0_ += b.w0_;
+	a.w1_ += b.w1_;
+	a.w2_ += b.w2_;
 }
 
 Barycentric operator+(
 	const Barycentric& a,
 	const Barycentric& b)
 {
-	return Barycentric(a.w0 + b.w0, a.w1 + b.w1, a.w2 + b.w2);
+	return Barycentric(a.w0_ + b.w0_, a.w1_ + b.w1_, a.w2_ + b.w2_);
 }
 
 // ----------------------------------------------------------------------------
@@ -216,7 +218,7 @@ ImVec4 operator+(
 ImVec4 color_convert_u32_to_float4(
 	const ImU32 in)
 {
-	const float s = 1.0f / 255.0f;
+	const float s = 1.0F / 255.0F;
 
 	return ImVec4(
 		((in >> IM_COL32_R_SHIFT) & 0xFF) * s,
@@ -228,14 +230,12 @@ ImVec4 color_convert_u32_to_float4(
 ImU32 color_convert_float4_to_u32(
 	const ImVec4& in)
 {
-	ImU32 out;
-
-	out = ImU32((in.x * 255.0F) + 0.5F) << IM_COL32_R_SHIFT;
-	out |= ImU32((in.y * 255.0F) + 0.5F) << IM_COL32_G_SHIFT;
-	out |= ImU32((in.z * 255.0F) + 0.5F) << IM_COL32_B_SHIFT;
-	out |= ImU32((in.w * 255.0F) + 0.5F) << IM_COL32_A_SHIFT;
-
-	return out;
+	return
+		(static_cast<ImU32>((in.x * 255.0F) + 0.5F) << IM_COL32_R_SHIFT) |
+		(static_cast<ImU32>((in.y * 255.0F) + 0.5F) << IM_COL32_G_SHIFT) |
+		(static_cast<ImU32>((in.z * 255.0F) + 0.5F) << IM_COL32_B_SHIFT) |
+		(static_cast<ImU32>((in.w * 255.0F) + 0.5F) << IM_COL32_A_SHIFT)
+	;
 }
 
 // ----------------------------------------------------------------------------
@@ -248,16 +248,16 @@ const Int kFixedBias = 256;
 
 struct Point
 {
-	Int x;
-	Int y;
+	Int x_;
+	Int y_;
 
 
 	Point(
 		const Int x,
 		const Int y)
 		:
-		x(x),
-		y(y)
+		x_(x),
+		y_(y)
 	{
 	}
 };
@@ -267,7 +267,7 @@ Int orient2d(
 	const Point& b,
 	const Point& c)
 {
-	return ((b.x - a.x) * (c.y - a.y)) - ((b.y - a.y) * (c.x - a.x));
+	return ((b.x_ - a.x_) * (c.y_ - a.y_)) - ((b.y_ - a.y_) * (c.x_ - a.x_));
 }
 
 Int as_int(
@@ -322,16 +322,16 @@ ImU8 sample_texture(
 	const Texture& texture,
 	const ImVec2& uv)
 {
-	int tx = static_cast<int>((uv.x * (texture.width - 1.0F)) + 0.5F);
-	int ty = static_cast<int>((uv.y * (texture.height - 1.0F)) + 0.5F);
+	int tx = static_cast<int>((uv.x * (texture.width_ - 1.0F)) + 0.5F);
+	int ty = static_cast<int>((uv.y * (texture.height_ - 1.0F)) + 0.5F);
 
 	// Clamp to inside of texture:
 	tx = std::max(tx, 0);
-	tx = std::min(tx, texture.width - 1);
+	tx = std::min(tx, texture.width_ - 1);
 	ty = std::max(ty, 0);
-	ty = std::min(ty, texture.height - 1);
+	ty = std::min(ty, texture.height_ - 1);
 
-	return texture.pixels[(ty * texture.width) + tx];
+	return texture.pixels_[(ty * texture.width_) + tx];
 }
 
 void paint_uniform_rectangle(
@@ -341,26 +341,26 @@ void paint_uniform_rectangle(
 	const ColorInt& color)
 {
 	// Integer bounding box [min, max):
-	int min_x_i = static_cast<int>((target.scale.x * min_f.x) + 0.5F);
-	int min_y_i = static_cast<int>((target.scale.y * min_f.y) + 0.5F);
-	int max_x_i = static_cast<int>((target.scale.x * max_f.x) + 0.5F);
-	int max_y_i = static_cast<int>((target.scale.y * max_f.y) + 0.5F);
+	int min_x_i = static_cast<int>((target.scale_.x * min_f.x) + 0.5F);
+	int min_y_i = static_cast<int>((target.scale_.y * min_f.y) + 0.5F);
+	int max_x_i = static_cast<int>((target.scale_.x * max_f.x) + 0.5F);
+	int max_y_i = static_cast<int>((target.scale_.y * max_f.y) + 0.5F);
 
 	// Clamp to render target:
 	min_x_i = std::max(min_x_i, 0);
 	min_y_i = std::max(min_y_i, 0);
-	max_x_i = std::min(max_x_i, target.width);
-	max_y_i = std::min(max_y_i, target.height);
+	max_x_i = std::min(max_x_i, target.width_);
+	max_y_i = std::min(max_y_i, target.height_);
 
 	// We often blend the same colors over and over again, so optimize for this (saves 25% total cpu):
-	ImU32 last_target_pixel = target.pixels[(min_y_i * target.width) + min_x_i];
+	ImU32 last_target_pixel = target.pixels_[(min_y_i * target.width_) + min_x_i];
 	ImU32 last_output = blend(ColorInt(last_target_pixel), color).toUint32();
 
 	for (int y = min_y_i; y < max_y_i; ++y)
 	{
 		for (int x = min_x_i; x < max_x_i; ++x)
 		{
-			ImU32& target_pixel = target.pixels[(y * target.width) + x];
+			ImU32& target_pixel = target.pixels_[(y * target.width_) + x];
 
 			if (target_pixel != last_target_pixel)
 			{
@@ -381,8 +381,8 @@ void paint_uniform_textured_rectangle(
 	const ImDrawVert& min_v,
 	const ImDrawVert& max_v)
 {
-	const ImVec2 min_p = ImVec2(target.scale.x * min_v.pos.x, target.scale.y * min_v.pos.y);
-	const ImVec2 max_p = ImVec2(target.scale.x * max_v.pos.x, target.scale.y * max_v.pos.y);
+	const ImVec2 min_p = ImVec2(target.scale_.x * min_v.pos.x, target.scale_.y * min_v.pos.y);
+	const ImVec2 max_p = ImVec2(target.scale_.x * max_v.pos.x, target.scale_.y * max_v.pos.y);
 
 	// Find bounding box:
 	float min_x_f = min_p.x;
@@ -391,10 +391,10 @@ void paint_uniform_textured_rectangle(
 	float max_y_f = max_p.y;
 
 	// Clip against clip_rect:
-	min_x_f = std::max(min_x_f, target.scale.x * clip_rect.x);
-	min_y_f = std::max(min_y_f, target.scale.y * clip_rect.y);
-	max_x_f = std::min(max_x_f, (target.scale.x * clip_rect.z) - 0.5F);
-	max_y_f = std::min(max_y_f, (target.scale.y * clip_rect.w) - 0.5F);
+	min_x_f = std::max(min_x_f, target.scale_.x * clip_rect.x);
+	min_y_f = std::max(min_y_f, target.scale_.y * clip_rect.y);
+	max_x_f = std::min(max_x_f, (target.scale_.x * clip_rect.z) - 0.5F);
+	max_y_f = std::min(max_y_f, (target.scale_.y * clip_rect.w) - 0.5F);
 
 	// Integer bounding box [min, max):
 	int min_x_i = static_cast<int>(min_x_f);
@@ -405,12 +405,12 @@ void paint_uniform_textured_rectangle(
 	// Clip against render target:
 	min_x_i = std::max(min_x_i, 0);
 	min_y_i = std::max(min_y_i, 0);
-	max_x_i = std::min(max_x_i, target.width);
-	max_y_i = std::min(max_y_i, target.height);
+	max_x_i = std::min(max_x_i, target.width_);
+	max_y_i = std::min(max_y_i, target.height_);
 
 	const ImVec2 topleft = ImVec2(
-		min_x_i + (0.5F * target.scale.x),
-		min_y_i + (0.5F * target.scale.y));
+		min_x_i + (0.5F * target.scale_.x),
+		min_y_i + (0.5F * target.scale_.y));
 
 	const ImVec2 delta_uv_per_pixel
 	(
@@ -420,8 +420,8 @@ void paint_uniform_textured_rectangle(
 
 	const ImVec2 uv_topleft
 	(
-		min_v.uv.x + (topleft.x - min_v.pos.x) * delta_uv_per_pixel.x,
-		min_v.uv.y + (topleft.y - min_v.pos.y) * delta_uv_per_pixel.y
+		min_v.uv.x + ((topleft.x - min_v.pos.x) * delta_uv_per_pixel.x),
+		min_v.uv.y + ((topleft.y - min_v.pos.y) * delta_uv_per_pixel.y)
 	);
 
 	ImVec2 current_uv = uv_topleft;
@@ -432,7 +432,7 @@ void paint_uniform_textured_rectangle(
 
 		for (int x = min_x_i; x < max_x_i; ++x, current_uv.x += delta_uv_per_pixel.x)
 		{
-			ImU32& target_pixel = target.pixels[(y * target.width) + x];
+			ImU32& target_pixel = target.pixels_[(y * target.width_) + x];
 
 			const ImU8 texel = sample_texture(texture, current_uv);
 
@@ -451,7 +451,7 @@ void paint_uniform_textured_rectangle(
 
 			// Other textured rectangles
 			ColorInt source_color(min_v.col);
-			source_color.a = (source_color.a * texel) / 255;
+			source_color.a_ = (source_color.a_ * texel) / 255;
 			target_pixel = blend(ColorInt(target_pixel), source_color).toUint32();
 		}
 	}
@@ -477,9 +477,9 @@ void paint_triangle(
 	const ImDrawVert& v1,
 	const ImDrawVert& v2)
 {
-	const ImVec2 p0 = ImVec2(target.scale.x * v0.pos.x, target.scale.y * v0.pos.y);
-	const ImVec2 p1 = ImVec2(target.scale.x * v1.pos.x, target.scale.y * v1.pos.y);
-	const ImVec2 p2 = ImVec2(target.scale.x * v2.pos.x, target.scale.y * v2.pos.y);
+	const ImVec2 p0 = ImVec2(target.scale_.x * v0.pos.x, target.scale_.y * v0.pos.y);
+	const ImVec2 p1 = ImVec2(target.scale_.x * v1.pos.x, target.scale_.y * v1.pos.y);
+	const ImVec2 p2 = ImVec2(target.scale_.x * v2.pos.x, target.scale_.y * v2.pos.y);
 
 	// Can be positive or negative depending on winding order
 	const float rect_area = barycentric(p0, p1, p2);
@@ -498,10 +498,10 @@ void paint_triangle(
 	float max_y_f = max3(p0.y, p1.y, p2.y);
 
 	// Clip against clip_rect:
-	min_x_f = std::max(min_x_f, target.scale.x * clip_rect.x);
-	min_y_f = std::max(min_y_f, target.scale.y * clip_rect.y);
-	max_x_f = std::min(max_x_f, (target.scale.x * clip_rect.z) - 0.5F);
-	max_y_f = std::min(max_y_f, (target.scale.y * clip_rect.w) - 0.5F);
+	min_x_f = std::max(min_x_f, target.scale_.x * clip_rect.x);
+	min_y_f = std::max(min_y_f, target.scale_.y * clip_rect.y);
+	max_x_f = std::min(max_x_f, (target.scale_.x * clip_rect.z) - 0.5F);
+	max_y_f = std::min(max_y_f, (target.scale_.y * clip_rect.w) - 0.5F);
 
 	// Integer bounding box [min, max):
 	int min_x_i = static_cast<int>(min_x_f);
@@ -512,15 +512,15 @@ void paint_triangle(
 	// Clip against render target:
 	min_x_i = std::max(min_x_i, 0);
 	min_y_i = std::max(min_y_i, 0);
-	max_x_i = std::min(max_x_i, target.width);
-	max_y_i = std::min(max_y_i, target.height);
+	max_x_i = std::min(max_x_i, target.width_);
+	max_y_i = std::min(max_y_i, target.height_);
 
 	// ------------------------------------------------------------------------
 	// Set up interpolation of barycentric coordinates:
 
 	const ImVec2 topleft = ImVec2(
-		min_x_i + (0.5F * target.scale.x),
-		min_y_i + (0.5F * target.scale.y));
+		min_x_i + (0.5F * target.scale_.x),
+		min_y_i + (0.5F * target.scale_.y));
 
 	const ImVec2 dx = ImVec2(1, 0);
 	const ImVec2 dy = ImVec2(0, 1);
@@ -581,9 +581,9 @@ void paint_triangle(
 
 		for (int x = min_x_i; x < max_x_i; ++x)
 		{
-			const float w0 = bary.w0;
-			const float w1 = bary.w1;
-			const float w2 = bary.w2;
+			const float w0 = bary.w0_;
+			const float w1 = bary.w1_;
+			const float w2 = bary.w2_;
 
 			bary += bary_dx;
 
@@ -611,7 +611,7 @@ void paint_triangle(
 
 			has_been_inside_this_row = true;
 
-			ImU32& target_pixel = target.pixels[(y * target.width) + x];
+			ImU32& target_pixel = target.pixels_[(y * target.width_) + x];
 
 			if (has_uniform_color && !texture)
 			{
@@ -680,7 +680,7 @@ void paint_draw_cmd(
 	assert(texture != NULL);
 
 	// ImGui uses the first pixel for "white".
-	const ImVec2 white_uv = ImVec2(0.5F / texture->width, 0.5F / texture->height);
+	const ImVec2 white_uv = ImVec2(0.5F / texture->width_, 0.5F / texture->height_);
 
 	for (unsigned i = 0; i + 3 <= pcmd.ElemCount; )
 	{
