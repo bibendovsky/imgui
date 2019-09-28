@@ -12,16 +12,16 @@
 //   * It does not support painting with any other texture than the default font texture.
 
 
-#include <stdint.h>
-
 #include <vector>
+
+#include "imgui.h"
 
 
 namespace imgui_sw
 {
 
 
-typedef std::vector<uint32_t> ColorBuffer;
+typedef std::vector<ImU32> ColorBuffer;
 extern ColorBuffer color_buffer_;
 
 
@@ -32,7 +32,10 @@ void bind_imgui_painting();
 /// Change with IMGUI_USE_BGRA_PACKED_COLOR.
 /// If width/height differs from ImGui::GetIO().DisplaySize then
 /// the function scales the UI to fit the given pixel buffer.
-void paint_imgui(uint32_t* pixels, int width_pixels, int height_pixels);
+void paint_imgui(
+	ImU32* const pixels,
+	const int width_pixels,
+	const int height_pixels);
 
 /// Free the resources allocated by bind_imgui_painting.
 void unbind_imgui_painting();

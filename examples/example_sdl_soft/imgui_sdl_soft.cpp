@@ -24,13 +24,13 @@ namespace
 
 struct Texture
 {
-	const uint8_t* pixels; // 8-bit.
+	const ImU8* pixels; // 8-bit.
 	int width;
 	int height;
 
 
 	Texture(
-		const uint8_t* const pixels,
+		const ImU8* const pixels,
 		const int width,
 		const int height)
 		:
@@ -43,7 +43,7 @@ struct Texture
 
 struct PaintTarget
 {
-	uint32_t* pixels;
+	ImU32* pixels;
 	int width;
 	int height;
 	ImVec2 scale; // Multiply ImGui (point) coordinates with this to get pixel coordinates.
@@ -53,10 +53,10 @@ struct PaintTarget
 
 struct ColorInt
 {
-	uint32_t a;
-	uint32_t b;
-	uint32_t g;
-	uint32_t r;
+	ImU32 a;
+	ImU32 b;
+	ImU32 g;
+	ImU32 r;
 
 
 	ColorInt()
@@ -68,8 +68,21 @@ struct ColorInt
 	{
 	}
 
+	ColorInt(
+		const ImU32 a,
+		const ImU32 b,
+		const ImU32 g,
+		const ImU32 r)
+		:
+		a(a),
+		b(b),
+		g(g),
+		r(r)
+	{
+	}
+
 	explicit ColorInt(
-		const uint32_t x)
+		const ImU32 x)
 		:
 		a((x >> IM_COL32_A_SHIFT) & 0xFFU),
 		b((x >> IM_COL32_B_SHIFT) & 0xFFU),
@@ -78,24 +91,33 @@ struct ColorInt
 	{
 	}
 
-	uint32_t toUint32() const
+	ImU32 toUint32() const
 	{
 		return (a << 24U) | (b << 16U) | (g << 8U) | r;
 	}
 }; // ColorInt
 
+ColorInt blend_0_x(
+	const ColorInt source)
+{
+	return ColorInt(
+		0, // Whatever.
+		(source.b * source.a) / 255,
+		(source.g * source.a) / 255,
+		(source.r * source.a) / 255
+	);
+}
+
 ColorInt blend(
 	const ColorInt target,
 	const ColorInt source)
 {
-	ColorInt result;
-
-	result.a = 0; // Whatever.
-	result.b = (source.b * source.a + target.b * (255 - source.a)) / 255;
-	result.g = (source.g * source.a + target.g * (255 - source.a)) / 255;
-	result.r = (source.r * source.a + target.r * (255 - source.a)) / 255;
-
-	return result;
+	return ColorInt(
+		0, // Whatever.
+		((source.b * source.a) + (target.b * (255 - source.a))) / 255,
+		((source.g * source.a) + (target.g * (255 - source.a))) / 255,
+		((source.r * source.a) + (target.r * (255 - source.a))) / 255
+	);
 }
 
 // ----------------------------------------------------------------------------
@@ -208,10 +230,10 @@ ImU32 color_convert_float4_to_u32(
 {
 	ImU32 out;
 
-	out = uint32_t((in.x * 255.0F) + 0.5F) << IM_COL32_R_SHIFT;
-	out |= uint32_t((in.y * 255.0F) + 0.5F) << IM_COL32_G_SHIFT;
-	out |= uint32_t((in.z * 255.0F) + 0.5F) << IM_COL32_B_SHIFT;
-	out |= uint32_t((in.w * 255.0F) + 0.5F) << IM_COL32_A_SHIFT;
+	out = ImU32((in.x * 255.0F) + 0.5F) << IM_COL32_R_SHIFT;
+	out |= ImU32((in.y * 255.0F) + 0.5F) << IM_COL32_G_SHIFT;
+	out |= ImU32((in.z * 255.0F) + 0.5F) << IM_COL32_B_SHIFT;
+	out |= ImU32((in.w * 255.0F) + 0.5F) << IM_COL32_A_SHIFT;
 
 	return out;
 }
@@ -220,7 +242,7 @@ ImU32 color_convert_float4_to_u32(
 // For fast and subpixel-perfect triangle rendering we used fixed point arithmetic.
 // To keep the code simple we use 64 bits to avoid overflows.
 
-typedef int64_t Int;
+typedef ImS64 Int;
 const Int kFixedBias = 256;
 
 
@@ -296,7 +318,7 @@ float barycentric(
 	return ((b.x - a.x) * (point.y - a.y)) - ((b.y - a.y) * (point.x - a.x));
 }
 
-uint8_t sample_texture(
+ImU8 sample_texture(
 	const Texture& texture,
 	const ImVec2& uv)
 {
@@ -331,24 +353,23 @@ void paint_uniform_rectangle(
 	max_y_i = std::min(max_y_i, target.height);
 
 	// We often blend the same colors over and over again, so optimize for this (saves 25% total cpu):
-	uint32_t last_target_pixel = target.pixels[(min_y_i * target.width) + min_x_i];
-	uint32_t last_output = blend(ColorInt(last_target_pixel), color).toUint32();
+	ImU32 last_target_pixel = target.pixels[(min_y_i * target.width) + min_x_i];
+	ImU32 last_output = blend(ColorInt(last_target_pixel), color).toUint32();
 
 	for (int y = min_y_i; y < max_y_i; ++y)
 	{
 		for (int x = min_x_i; x < max_x_i; ++x)
 		{
-			uint32_t& target_pixel = target.pixels[(y * target.width) + x];
+			ImU32& target_pixel = target.pixels[(y * target.width) + x];
 
-			if (target_pixel == last_target_pixel)
+			if (target_pixel != last_target_pixel)
 			{
-				target_pixel = last_output;
-				continue;
+				last_target_pixel = target_pixel;
+				target_pixel = blend(ColorInt(target_pixel), color).toUint32();
+				last_output = target_pixel;
 			}
 
-			last_target_pixel = target_pixel;
-			target_pixel = blend(ColorInt(target_pixel), color).toUint32();
-			last_output = target_pixel;
+			target_pixel = last_output;
 		}
 	}
 }
@@ -411,9 +432,9 @@ void paint_uniform_textured_rectangle(
 
 		for (int x = min_x_i; x < max_x_i; ++x, current_uv.x += delta_uv_per_pixel.x)
 		{
-			uint32_t& target_pixel = target.pixels[(y * target.width) + x];
+			ImU32& target_pixel = target.pixels[(y * target.width) + x];
 
-			const uint8_t texel = sample_texture(texture, current_uv);
+			const ImU8 texel = sample_texture(texture, current_uv);
 
 			// The font texture is all black or all white, so optimize for this:
 			if (texel == 0)
@@ -424,12 +445,13 @@ void paint_uniform_textured_rectangle(
 			if (texel == 255)
 			{
 				target_pixel = min_v.col;
+
 				continue;
 			}
 
 			// Other textured rectangles
-			ColorInt source_color = ColorInt(min_v.col);
-			source_color.a = source_color.a * texel / 255;
+			ColorInt source_color(min_v.col);
+			source_color.a = (source_color.a * texel) / 255;
 			target_pixel = blend(ColorInt(target_pixel), source_color).toUint32();
 		}
 	}
@@ -497,8 +519,8 @@ void paint_triangle(
 	// Set up interpolation of barycentric coordinates:
 
 	const ImVec2 topleft = ImVec2(
-		min_x_i + 0.5f * target.scale.x,
-		min_y_i + 0.5f * target.scale.y);
+		min_x_i + (0.5F * target.scale.x),
+		min_y_i + (0.5F * target.scale.y));
 
 	const ImVec2 dx = ImVec2(1, 0);
 	const ImVec2 dy = ImVec2(0, 1);
@@ -548,8 +570,8 @@ void paint_triangle(
 	const ImVec4 c2 = color_convert_u32_to_float4(v2.col);
 
 	// We often blend the same colors over and over again, so optimize for this (saves 10% total cpu):
-	uint32_t last_target_pixel = 0;
-	uint32_t last_output = blend(ColorInt(last_target_pixel), ColorInt(v0.col)).toUint32();
+	ImU32 last_target_pixel = 0;
+	ImU32 last_output = blend_0_x(ColorInt(v0.col)).toUint32();
 
 	for (int y = min_y_i; y < max_y_i; ++y)
 	{
@@ -576,7 +598,9 @@ void paint_triangle(
 				{
 					if (has_been_inside_this_row)
 					{
-						break; // Gives a nice 10% speedup
+						// Gives a nice 10% speedup
+
+						break;
 					}
 					else
 					{
@@ -587,20 +611,18 @@ void paint_triangle(
 
 			has_been_inside_this_row = true;
 
-			uint32_t& target_pixel = target.pixels[(y * target.width) + x];
+			ImU32& target_pixel = target.pixels[(y * target.width) + x];
 
 			if (has_uniform_color && !texture)
 			{
-				if (target_pixel == last_target_pixel)
+				if (target_pixel != last_target_pixel)
 				{
-					target_pixel = last_output;
-
-					continue;
+					last_target_pixel = target_pixel;
+					target_pixel = blend(ColorInt(target_pixel), ColorInt(v0.col)).toUint32();
+					last_output = target_pixel;
 				}
 
-				last_target_pixel = target_pixel;
-				target_pixel = blend(ColorInt(target_pixel), ColorInt(v0.col)).toUint32();
-				last_output = target_pixel;
+				target_pixel = last_output;
 
 				continue;
 			}
@@ -764,30 +786,12 @@ void paint_draw_cmd(
 					continue;
 				}
 
-				if (has_uniform_color)
+				if (has_uniform_color && !has_texture)
 				{
-					if (has_texture)
-					{
-						//
-					}
-					else
-					{
-						paint_uniform_rectangle(target, min, max, ColorInt(v0.col));
-						i += 6;
+					paint_uniform_rectangle(target, min, max, ColorInt(v0.col));
+					i += 6;
 
-						continue;
-					}
-				}
-				else
-				{
-					if (has_texture)
-					{
-						// I have never encountered these.
-					}
-					else
-					{
-						// Color picker. TODO: Optimize
-					}
+					continue;
 				}
 			}
 		}
@@ -835,7 +839,7 @@ void bind_imgui_painting()
 	ImGuiIO& io = ImGui::GetIO();
 
 	// Load default font (embedded in code):
-	uint8_t* tex_data;
+	ImU8* tex_data;
 
 	int font_width;
 	int font_height;
@@ -847,7 +851,7 @@ void bind_imgui_painting()
 }
 
 void paint_imgui(
-	uint32_t* const pixels,
+	ImU32* const pixels,
 	const int width_pixels,
 	const int height_pixels)
 {
