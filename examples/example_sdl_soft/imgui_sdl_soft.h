@@ -21,7 +21,7 @@ namespace imgui_sw
 {
 
 
-typedef std::vector<ImU32> ColorBuffer;
+typedef ImVector<ImU32> ColorBuffer;
 extern ColorBuffer color_buffer_;
 
 

@@ -54,7 +54,7 @@ void ImGui_ImplSdlSoft_RenderDrawData(ImDrawData* draw_data)
 {
 	const int width = static_cast<int>(draw_data->DisplaySize.x);
 	const int height = static_cast<int>(draw_data->DisplaySize.y);
-	const std::size_t area = width * height;
+	const int area = width * height;
 
 	if (imgui_sw::color_buffer_.size() < area)
 	{
