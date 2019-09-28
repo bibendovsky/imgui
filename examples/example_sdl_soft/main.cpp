@@ -216,13 +216,15 @@ int main(int, char**)
 
 			if (sdl_lock_texture_result == 0)
 			{
-				std::uint32_t* pixels = static_cast<std::uint32_t*>(raw_pixels);
+				uint32_t* pixels = static_cast<uint32_t*>(raw_pixels);
 
 				if (pitch == ideal_pitch)
 				{
-					std::uninitialized_copy_n(
-						&imgui_sw::color_buffer_[0],
-						fb_width * fb_height,
+					const uint32_t* const src_pixels = &imgui_sw::color_buffer_[0];
+
+					std::uninitialized_copy(
+						src_pixels,
+						src_pixels + (fb_width * fb_height),
 						pixels
 					);
 				}
@@ -230,9 +232,11 @@ int main(int, char**)
 				{
 					for (int i = 0; i < fb_height; ++i)
 					{
-						std::uninitialized_copy_n(
-							&imgui_sw::color_buffer_[i * fb_width],
-							fb_width,
+						const uint32_t* const src_pixels = &imgui_sw::color_buffer_[i * fb_width];
+
+						std::uninitialized_copy(
+							src_pixels,
+							src_pixels + fb_width,
 							pixels
 						);
 
@@ -246,7 +250,7 @@ int main(int, char**)
 			std::fill(
 				imgui_sw::color_buffer_.begin(),
 				imgui_sw::color_buffer_.end(),
-				std::uint32_t()
+				uint32_t()
 			);
 		}
 

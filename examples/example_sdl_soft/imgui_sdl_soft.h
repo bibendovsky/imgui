@@ -10,16 +10,18 @@
 // LIMITATIONS:
 //   * It is not pixel-perfect, but it is good enough for must use cases.
 //   * It does not support painting with any other texture than the default font texture.
-#pragma once
 
-#include <cstdint>
+
+#include <stdint.h>
+
 #include <vector>
+
 
 namespace imgui_sw
 {
 
 
-using ColorBuffer = std::vector<std::uint32_t>;
+typedef std::vector<uint32_t> ColorBuffer;
 extern ColorBuffer color_buffer_;
 
 

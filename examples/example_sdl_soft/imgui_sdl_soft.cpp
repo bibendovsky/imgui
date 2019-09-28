@@ -27,6 +27,18 @@ struct Texture
 	const uint8_t* pixels; // 8-bit.
 	int width;
 	int height;
+
+
+	Texture(
+		const uint8_t* const pixels,
+		const int width,
+		const int height)
+		:
+		pixels(pixels),
+		width(width),
+		height(height)
+	{
+	}
 };
 
 struct PaintTarget
@@ -94,13 +106,25 @@ struct Barycentric
 	float w0;
 	float w1;
 	float w2;
+
+
+	Barycentric(
+		const float w0,
+		const float w1,
+		const float w2)
+		:
+		w0(w0),
+		w1(w1),
+		w2(w2)
+	{
+	}
 }; // Barycentric
 
 Barycentric operator*(
 	const float f,
 	const Barycentric& va)
 {
-	return {f * va.w0, f * va.w1, f * va.w2};
+	return Barycentric(f * va.w0, f * va.w1, f * va.w2);
 }
 
 void operator+=(
@@ -116,7 +140,7 @@ Barycentric operator+(
 	const Barycentric& a,
 	const Barycentric& b)
 {
-	return {a.w0 + b.w0, a.w1 + b.w1, a.w2 + b.w2};
+	return Barycentric(a.w0 + b.w0, a.w1 + b.w1, a.w2 + b.w2);
 }
 
 // ----------------------------------------------------------------------------
@@ -204,6 +228,16 @@ struct Point
 {
 	Int x;
 	Int y;
+
+
+	Point(
+		const Int x,
+		const Int y)
+		:
+		x(x),
+		y(y)
+	{
+	}
 };
 
 Int orient2d(
@@ -223,7 +257,7 @@ Int as_int(
 Point as_point(
 	const ImVec2 v)
 {
-	return {as_int(v.x), as_int(v.y)};
+	return Point(as_int(v.x), as_int(v.y));
 }
 
 // ----------------------------------------------------------------------------
@@ -353,21 +387,21 @@ void paint_uniform_textured_rectangle(
 	max_x_i = std::min(max_x_i, target.width);
 	max_y_i = std::min(max_y_i, target.height);
 
-	const auto topleft = ImVec2(
+	const ImVec2 topleft = ImVec2(
 		min_x_i + (0.5F * target.scale.x),
 		min_y_i + (0.5F * target.scale.y));
 
-	const ImVec2 delta_uv_per_pixel =
-	{
+	const ImVec2 delta_uv_per_pixel
+	(
 		(max_v.uv.x - min_v.uv.x) / (max_p.x - min_p.x),
-		(max_v.uv.y - min_v.uv.y) / (max_p.y - min_p.y),
-	};
+		(max_v.uv.y - min_v.uv.y) / (max_p.y - min_p.y)
+	);
 
-	const ImVec2 uv_topleft =
-	{
+	const ImVec2 uv_topleft
+	(
 		min_v.uv.x + (topleft.x - min_v.pos.x) * delta_uv_per_pixel.x,
-		min_v.uv.y + (topleft.y - min_v.pos.y) * delta_uv_per_pixel.y,
-	};
+		min_v.uv.y + (topleft.y - min_v.pos.y) * delta_uv_per_pixel.y
+	);
 
 	ImVec2 current_uv = uv_topleft;
 
@@ -426,7 +460,7 @@ void paint_triangle(
 	const ImVec2 p2 = ImVec2(target.scale.x * v2.pos.x, target.scale.y * v2.pos.y);
 
 	// Can be positive or negative depending on winding order
-	const auto rect_area = barycentric(p0, p1, p2);
+	const float rect_area = barycentric(p0, p1, p2);
 
 	if (rect_area == 0.0f)
 	{
@@ -481,9 +515,9 @@ void paint_triangle(
 	const float w1_dy = barycentric(p2, p0, topleft + dy) - w1_topleft;
 	const float w2_dy = barycentric(p0, p1, topleft + dy) - w2_topleft;
 
-	const Barycentric bary_0 = {1, 0, 0};
-	const Barycentric bary_1 = {0, 1, 0};
-	const Barycentric bary_2 = {0, 0, 1};
+	const Barycentric bary_0(1, 0, 0);
+	const Barycentric bary_1(0, 1, 0);
+	const Barycentric bary_2(0, 0, 1);
 
 	const float inv_area = 1 / rect_area;
 	const Barycentric bary_topleft = inv_area * ((w0_topleft * bary_0) + (w1_topleft * bary_1) + (w2_topleft * bary_2));
@@ -533,7 +567,7 @@ void paint_triangle(
 
 			{
 				// Inside/outside test:
-				const Point p = {kFixedBias * x + kFixedBias / 2, kFixedBias * y + kFixedBias / 2};
+				const Point p(kFixedBias * x + kFixedBias / 2, kFixedBias * y + kFixedBias / 2);
 				const Int w0i = sign * orient2d(p1i, p2i, p) + bias0i;
 				const Int w1i = sign * orient2d(p2i, p0i, p) + bias1i;
 				const Int w2i = sign * orient2d(p0i, p1i, p) + bias2i;
@@ -605,7 +639,7 @@ void paint_triangle(
 			}
 
 			ImVec4 target_color = color_convert_u32_to_float4(target_pixel);
-			const auto blended_color = (src_color.w * src_color) + (1.0F - src_color.w) * target_color;
+			const ImVec4 blended_color = (src_color.w * src_color) + (1.0F - src_color.w) * target_color;
 			target_pixel = color_convert_float4_to_u32(blended_color);
 		}
 
@@ -760,7 +794,7 @@ void paint_draw_cmd(
 
 		const bool has_texture = (v0.uv != white_uv || v1.uv != white_uv || v2.uv != white_uv);
 
-		paint_triangle(target, has_texture ? texture : nullptr, pcmd.ClipRect, v0, v1, v2);
+		paint_triangle(target, has_texture ? texture : NULL, pcmd.ClipRect, v0, v1, v2);
 
 		i += 3;
 	}
@@ -807,7 +841,7 @@ void bind_imgui_painting()
 	int font_height;
 	io.Fonts->GetTexDataAsAlpha8(&tex_data, &font_width, &font_height);
 
-	Texture* texture = new Texture{tex_data, font_width, font_height};
+	Texture* texture = new Texture(tex_data, font_width, font_height);
 
 	io.Fonts->TexID = texture;
 }
@@ -836,7 +870,7 @@ void unbind_imgui_painting()
 {
 	ImGuiIO& io = ImGui::GetIO();
 	delete reinterpret_cast<Texture*>(io.Fonts->TexID);
-	io.Fonts = nullptr;
+	io.Fonts = NULL;
 }
 
 
