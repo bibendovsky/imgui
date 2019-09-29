@@ -327,14 +327,14 @@ ImU8 sample_texture(
 	const Texture& texture,
 	const ImVec2& uv)
 {
-	int tx = static_cast<int>((uv.x * (texture.width_ - 1.0F)) + 0.5F);
-	int ty = static_cast<int>((uv.y * (texture.height_ - 1.0F)) + 0.5F);
+	assert(uv.x >= 0 && uv.x <= 1);
+	assert(uv.y >= 0 && uv.y <= 1);
 
-	// Clamp to inside of texture:
-	tx = std::max(tx, 0);
-	tx = std::min(tx, texture.width_ - 1);
-	ty = std::max(ty, 0);
-	ty = std::min(ty, texture.height_ - 1);
+	const int w_1 = texture.width_ - 1;
+	const int h_1 = texture.height_ - 1;
+
+	const int tx = static_cast<int>((uv.x * w_1) + 0.5F);
+	const int ty = static_cast<int>((uv.y * h_1) + 0.5F);
 
 	return texture.pixels_[(ty * texture.width_) + tx];
 }
@@ -361,13 +361,15 @@ void paint_uniform_rectangle(
 	{
 		const ImU32 target_color = color.toUint32();
 
+		const int line_width = max_x_i - min_x_i;
+
 		ImU32* target_pixels = &target.pixels_[(min_y_i * target.width_) + min_x_i];
 
 		for (int y = min_y_i; y < max_y_i; ++y)
 		{
 			std::uninitialized_fill(
 				target_pixels,
-				target_pixels + (max_x_i - min_x_i),
+				target_pixels + line_width,
 				target_color
 			);
 
@@ -376,15 +378,17 @@ void paint_uniform_rectangle(
 	}
 	else
 	{
+		ImU32* target_pixels = &target.pixels_[(min_y_i * target.width_)];
+
 		// We often blend the same colors over and over again, so optimize for this (saves 25% total cpu):
-		ImU32 last_target_pixel = target.pixels_[(min_y_i * target.width_) + min_x_i];
+		ImU32 last_target_pixel = target_pixels[min_x_i];
 		ImU32 last_output = blend(ColorInt(last_target_pixel), color).toUint32();
 
 		for (int y = min_y_i; y < max_y_i; ++y)
 		{
 			for (int x = min_x_i; x < max_x_i; ++x)
 			{
-				ImU32& target_pixel = target.pixels_[(y * target.width_) + x];
+				ImU32& target_pixel = target_pixels[x];
 
 				if (target_pixel != last_target_pixel)
 				{
@@ -395,6 +399,8 @@ void paint_uniform_rectangle(
 
 				target_pixel = last_output;
 			}
+
+			target_pixels += target.width_;
 		}
 	}
 }
