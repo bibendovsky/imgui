@@ -581,10 +581,6 @@ void paint_triangle(
 
 		for (int x = min_x_i; x < max_x_i; ++x)
 		{
-			const float w0 = bary.w0_;
-			const float w1 = bary.w1_;
-			const float w2 = bary.w2_;
-
 			bary += bary_dx;
 
 			{
@@ -626,6 +622,10 @@ void paint_triangle(
 
 				continue;
 			}
+
+			const float w0 = bary.w0_;
+			const float w1 = bary.w1_;
+			const float w2 = bary.w2_;
 
 			ImVec4 src_color;
 
