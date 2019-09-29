@@ -131,6 +131,10 @@ struct Barycentric
 	float w2_;
 
 
+	Barycentric()
+	{
+	}
+
 	Barycentric(
 		const float w0,
 		const float w1,
@@ -491,6 +495,17 @@ void paint_triangle(
 
 	// if (rect_area < 0.0f) { return paint_triangle(target, texture, clip_rect, v0, v2, v1, stats); }
 
+
+	// ------------------------------------------------------------------------
+	const bool has_uniform_color = (v0.col == v1.col && v0.col == v2.col);
+	const bool use_bary = (!has_uniform_color || texture);
+
+	const ImVec4 c0 = color_convert_u32_to_float4(v0.col);
+	const ImVec4 c1 = (has_uniform_color ? ImVec4() : color_convert_u32_to_float4(v1.col));
+	const ImVec4 c2 = (has_uniform_color ? ImVec4() : color_convert_u32_to_float4(v2.col));
+
+
+	// ------------------------------------------------------------------------
 	// Find bounding box:
 	float min_x_f = min3(p0.x, p1.x, p2.x);
 	float min_y_f = min3(p0.y, p1.y, p2.y);
@@ -518,35 +533,44 @@ void paint_triangle(
 	// ------------------------------------------------------------------------
 	// Set up interpolation of barycentric coordinates:
 
-	const ImVec2 topleft = ImVec2(
-		min_x_i + (0.5F * target.scale_.x),
-		min_y_i + (0.5F * target.scale_.y));
+	Barycentric bary_topleft;
+	Barycentric bary_dx;
+	Barycentric bary_dy;
+	Barycentric bary_current_row;
 
-	const ImVec2 dx = ImVec2(1, 0);
-	const ImVec2 dy = ImVec2(0, 1);
+	if (use_bary)
+	{
+		const ImVec2 topleft = ImVec2(
+			min_x_i + (0.5F * target.scale_.x),
+			min_y_i + (0.5F * target.scale_.y));
 
-	const float w0_topleft = barycentric(p1, p2, topleft);
-	const float w1_topleft = barycentric(p2, p0, topleft);
-	const float w2_topleft = barycentric(p0, p1, topleft);
+		const ImVec2 dx = ImVec2(1, 0);
+		const ImVec2 dy = ImVec2(0, 1);
 
-	const float w0_dx = barycentric(p1, p2, topleft + dx) - w0_topleft;
-	const float w1_dx = barycentric(p2, p0, topleft + dx) - w1_topleft;
-	const float w2_dx = barycentric(p0, p1, topleft + dx) - w2_topleft;
+		const float w0_topleft = barycentric(p1, p2, topleft);
+		const float w1_topleft = barycentric(p2, p0, topleft);
+		const float w2_topleft = barycentric(p0, p1, topleft);
 
-	const float w0_dy = barycentric(p1, p2, topleft + dy) - w0_topleft;
-	const float w1_dy = barycentric(p2, p0, topleft + dy) - w1_topleft;
-	const float w2_dy = barycentric(p0, p1, topleft + dy) - w2_topleft;
+		const float w0_dx = barycentric(p1, p2, topleft + dx) - w0_topleft;
+		const float w1_dx = barycentric(p2, p0, topleft + dx) - w1_topleft;
+		const float w2_dx = barycentric(p0, p1, topleft + dx) - w2_topleft;
 
-	const Barycentric bary_0(1, 0, 0);
-	const Barycentric bary_1(0, 1, 0);
-	const Barycentric bary_2(0, 0, 1);
+		const float w0_dy = barycentric(p1, p2, topleft + dy) - w0_topleft;
+		const float w1_dy = barycentric(p2, p0, topleft + dy) - w1_topleft;
+		const float w2_dy = barycentric(p0, p1, topleft + dy) - w2_topleft;
 
-	const float inv_area = 1 / rect_area;
-	const Barycentric bary_topleft = inv_area * ((w0_topleft * bary_0) + (w1_topleft * bary_1) + (w2_topleft * bary_2));
-	const Barycentric bary_dx = inv_area * ((w0_dx * bary_0) + (w1_dx * bary_1) + (w2_dx * bary_2));
-	const Barycentric bary_dy = inv_area * ((w0_dy * bary_0) + (w1_dy * bary_1) + (w2_dy * bary_2));
+		const Barycentric bary_0(1, 0, 0);
+		const Barycentric bary_1(0, 1, 0);
+		const Barycentric bary_2(0, 0, 1);
 
-	Barycentric bary_current_row = bary_topleft;
+		const float inv_area = 1 / rect_area;
+
+		bary_topleft = inv_area * ((w0_topleft * bary_0) + (w1_topleft * bary_1) + (w2_topleft * bary_2));
+		bary_dx = inv_area * ((w0_dx * bary_0) + (w1_dx * bary_1) + (w2_dx * bary_2));
+		bary_dy = inv_area * ((w0_dy * bary_0) + (w1_dy * bary_1) + (w2_dy * bary_2));
+
+		bary_current_row = bary_topleft;
+	}
 
 	// ------------------------------------------------------------------------
 	// For pixel-perfect inside/outside testing:
@@ -563,12 +587,6 @@ void paint_triangle(
 
 	// ------------------------------------------------------------------------
 
-	const bool has_uniform_color = (v0.col == v1.col && v0.col == v2.col);
-
-	const ImVec4 c0 = color_convert_u32_to_float4(v0.col);
-	const ImVec4 c1 = (has_uniform_color ? ImVec4() : color_convert_u32_to_float4(v1.col));
-	const ImVec4 c2 = (has_uniform_color ? ImVec4() : color_convert_u32_to_float4(v2.col));
-
 	// We often blend the same colors over and over again, so optimize for this (saves 10% total cpu):
 	const ColorInt v0_col_int(v0.col);
 
@@ -577,19 +595,32 @@ void paint_triangle(
 
 	for (int y = min_y_i; y < max_y_i; ++y)
 	{
-		Barycentric bary = bary_current_row;
+		Barycentric bary;
+
+		if (use_bary)
+		{
+			bary = bary_current_row;
+		}
 
 		bool has_been_inside_this_row = false;
 
+		const Point p((kFixedBias * min_x_i) + kFixedBias / 2, (kFixedBias * y) + kFixedBias / 2);
+
+		Int w0i = (sign * orient2d(p1i, p2i, p)) + bias0i;
+		const Int d_w0i = kFixedBias * sign * (p1i.y_ - p2i.y_);
+
+		Int w1i = (sign * orient2d(p2i, p0i, p)) + bias1i;
+		const Int d_w1i = kFixedBias * sign * (p2i.y_ - p0i.y_);
+
+		Int w2i = (sign * orient2d(p0i, p1i, p)) + bias2i;
+		const Int d_w2i = kFixedBias * sign * (p0i.y_ - p1i.y_);
+
 		for (int x = min_x_i; x < max_x_i; ++x)
 		{
-			bary += bary_dx;
-
-			// Inside/outside test:
-			const Point p(kFixedBias * x + kFixedBias / 2, kFixedBias * y + kFixedBias / 2);
-			const Int w0i = (sign * orient2d(p1i, p2i, p)) + bias0i;
-			const Int w1i = (sign * orient2d(p2i, p0i, p)) + bias1i;
-			const Int w2i = (sign * orient2d(p0i, p1i, p)) + bias2i;
+			if (use_bary)
+			{
+				bary += bary_dx;
+			}
 
 			if (w0i < 0 || w1i < 0 || w2i < 0)
 			{
@@ -654,9 +685,16 @@ void paint_triangle(
 					}
 				}
 			}
+
+			w0i += d_w0i;
+			w1i += d_w1i;
+			w2i += d_w2i;
 		}
 
-		bary_current_row += bary_dy;
+		if (use_bary)
+		{
+			bary_current_row += bary_dy;
+		}
 	}
 }
 
