@@ -39,7 +39,7 @@ struct Texture
 		height_(height)
 	{
 	}
-};
+}; // Texture
 
 struct PaintTarget
 {
@@ -47,7 +47,7 @@ struct PaintTarget
 	int width_;
 	int height_;
 	ImVec2 scale_; // Multiply ImGui (point) coordinates with this to get pixel coordinates.
-};
+}; // PaintTarget
 
 // ----------------------------------------------------------------------------
 
@@ -247,7 +247,8 @@ ImU32 color_convert_float4_to_u32(
 // To keep the code simple we use 64 bits to avoid overflows.
 
 typedef ImS64 Int;
-const Int kFixedBias = 256;
+
+static const Int fixed_bias = 256;
 
 
 struct Point
@@ -277,7 +278,7 @@ Int orient2d(
 Int as_int(
 	const float v)
 {
-	return static_cast<Int>(std::floor(v * kFixedBias));
+	return static_cast<Int>(std::floor(v * fixed_bias));
 }
 
 Point as_point(
@@ -593,7 +594,7 @@ void paint_triangle(
 	ImU32 last_target_pixel = 0;
 	ImU32 last_output = blend_0_x(v0_col_int).toUint32();
 
-	Point p((kFixedBias * min_x_i) + kFixedBias / 2, (kFixedBias * min_y_i) + kFixedBias / 2);
+	Point p((fixed_bias * min_x_i) + fixed_bias / 2, (fixed_bias * min_y_i) + fixed_bias / 2);
 
 	ImU32* target_pixels = &target.pixels_[min_y_i * target.width_];
 
@@ -609,13 +610,13 @@ void paint_triangle(
 		bool has_been_inside_this_row = false;
 
 		Int w0i = (sign * orient2d(p1i, p2i, p)) + bias0i;
-		const Int d_w0i = kFixedBias * sign * (p1i.y_ - p2i.y_);
+		const Int d_w0i = fixed_bias * sign * (p1i.y_ - p2i.y_);
 
 		Int w1i = (sign * orient2d(p2i, p0i, p)) + bias1i;
-		const Int d_w1i = kFixedBias * sign * (p2i.y_ - p0i.y_);
+		const Int d_w1i = fixed_bias * sign * (p2i.y_ - p0i.y_);
 
 		Int w2i = (sign * orient2d(p0i, p1i, p)) + bias2i;
-		const Int d_w2i = kFixedBias * sign * (p0i.y_ - p1i.y_);
+		const Int d_w2i = fixed_bias * sign * (p0i.y_ - p1i.y_);
 
 		for (int x = min_x_i; x < max_x_i; ++x)
 		{
@@ -695,7 +696,7 @@ void paint_triangle(
 
 		target_pixels += target.width_;
 
-		p.y_ += kFixedBias;
+		p.y_ += fixed_bias;
 
 		if (use_bary)
 		{
