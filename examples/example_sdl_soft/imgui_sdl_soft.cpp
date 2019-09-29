@@ -566,12 +566,14 @@ void paint_triangle(
 	const bool has_uniform_color = (v0.col == v1.col && v0.col == v2.col);
 
 	const ImVec4 c0 = color_convert_u32_to_float4(v0.col);
-	const ImVec4 c1 = color_convert_u32_to_float4(v1.col);
-	const ImVec4 c2 = color_convert_u32_to_float4(v2.col);
+	const ImVec4 c1 = (has_uniform_color ? ImVec4() : color_convert_u32_to_float4(v1.col));
+	const ImVec4 c2 = (has_uniform_color ? ImVec4() : color_convert_u32_to_float4(v2.col));
 
 	// We often blend the same colors over and over again, so optimize for this (saves 10% total cpu):
+	const ColorInt v0_col_int(v0.col);
+
 	ImU32 last_target_pixel = 0;
-	ImU32 last_output = blend_0_x(ColorInt(v0.col)).toUint32();
+	ImU32 last_output = blend_0_x(v0_col_int).toUint32();
 
 	for (int y = min_y_i; y < max_y_i; ++y)
 	{
@@ -586,9 +588,9 @@ void paint_triangle(
 			{
 				// Inside/outside test:
 				const Point p(kFixedBias * x + kFixedBias / 2, kFixedBias * y + kFixedBias / 2);
-				const Int w0i = sign * orient2d(p1i, p2i, p) + bias0i;
-				const Int w1i = sign * orient2d(p2i, p0i, p) + bias1i;
-				const Int w2i = sign * orient2d(p0i, p1i, p) + bias2i;
+				const Int w0i = (sign * orient2d(p1i, p2i, p)) + bias0i;
+				const Int w1i = (sign * orient2d(p2i, p0i, p)) + bias1i;
+				const Int w2i = (sign * orient2d(p0i, p1i, p)) + bias2i;
 
 				if (w0i < 0 || w1i < 0 || w2i < 0)
 				{
@@ -614,7 +616,7 @@ void paint_triangle(
 				if (target_pixel != last_target_pixel)
 				{
 					last_target_pixel = target_pixel;
-					target_pixel = blend(ColorInt(target_pixel), ColorInt(v0.col)).toUint32();
+					target_pixel = blend(ColorInt(target_pixel), v0_col_int).toUint32();
 					last_output = target_pixel;
 				}
 
@@ -635,7 +637,7 @@ void paint_triangle(
 			}
 			else
 			{
-				src_color = w0 * c0 + w1 * c1 + w2 * c2;
+				src_color = (w0 * c0) + (w1 * c1) + (w2 * c2);
 			}
 
 			if (texture)
@@ -660,7 +662,7 @@ void paint_triangle(
 				continue;
 			}
 
-			ImVec4 target_color = color_convert_u32_to_float4(target_pixel);
+			const ImVec4 target_color = color_convert_u32_to_float4(target_pixel);
 			const ImVec4 blended_color = (src_color.w * src_color) + (1.0F - src_color.w) * target_color;
 			target_pixel = color_convert_float4_to_u32(blended_color);
 		}
