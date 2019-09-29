@@ -357,24 +357,44 @@ void paint_uniform_rectangle(
 	max_x_i = std::min(max_x_i, target.width_);
 	max_y_i = std::min(max_y_i, target.height_);
 
-	// We often blend the same colors over and over again, so optimize for this (saves 25% total cpu):
-	ImU32 last_target_pixel = target.pixels_[(min_y_i * target.width_) + min_x_i];
-	ImU32 last_output = blend(ColorInt(last_target_pixel), color).toUint32();
-
-	for (int y = min_y_i; y < max_y_i; ++y)
+	if (color.a_ >= 255)
 	{
-		for (int x = min_x_i; x < max_x_i; ++x)
+		const ImU32 target_color = color.toUint32();
+
+		ImU32* target_pixels = &target.pixels_[(min_y_i * target.width_) + min_x_i];
+
+		for (int y = min_y_i; y < max_y_i; ++y)
 		{
-			ImU32& target_pixel = target.pixels_[(y * target.width_) + x];
+			std::uninitialized_fill(
+				target_pixels,
+				target_pixels + (max_x_i - min_x_i),
+				target_color
+			);
 
-			if (target_pixel != last_target_pixel)
+			target_pixels += target.width_;
+		}
+	}
+	else
+	{
+		// We often blend the same colors over and over again, so optimize for this (saves 25% total cpu):
+		ImU32 last_target_pixel = target.pixels_[(min_y_i * target.width_) + min_x_i];
+		ImU32 last_output = blend(ColorInt(last_target_pixel), color).toUint32();
+
+		for (int y = min_y_i; y < max_y_i; ++y)
+		{
+			for (int x = min_x_i; x < max_x_i; ++x)
 			{
-				last_target_pixel = target_pixel;
-				target_pixel = blend(ColorInt(target_pixel), color).toUint32();
-				last_output = target_pixel;
-			}
+				ImU32& target_pixel = target.pixels_[(y * target.width_) + x];
 
-			target_pixel = last_output;
+				if (target_pixel != last_target_pixel)
+				{
+					last_target_pixel = target_pixel;
+					target_pixel = blend(ColorInt(target_pixel), color).toUint32();
+					last_output = target_pixel;
+				}
+
+				target_pixel = last_output;
+			}
 		}
 	}
 }
@@ -430,35 +450,36 @@ void paint_uniform_textured_rectangle(
 	);
 
 	ImVec2 current_uv = uv_topleft;
+	ImU32* target_pixels = &target.pixels_[min_y_i * target.width_];
 
-	for (int y = min_y_i; y < max_y_i; ++y, current_uv.y += delta_uv_per_pixel.y)
+	for (int y = min_y_i; y < max_y_i; ++y)
 	{
 		current_uv.x = uv_topleft.x;
 
-		for (int x = min_x_i; x < max_x_i; ++x, current_uv.x += delta_uv_per_pixel.x)
+		for (int x = min_x_i; x < max_x_i; ++x)
 		{
-			ImU32& target_pixel = target.pixels_[(y * target.width_) + x];
+			ImU32& target_pixel = target_pixels[x];
 
 			const ImU8 texel = sample_texture(texture, current_uv);
-
-			// The font texture is all black or all white, so optimize for this:
-			if (texel == 0)
-			{
-				continue;
-			}
 
 			if (texel == 255)
 			{
 				target_pixel = min_v.col;
-
-				continue;
+			}
+			else if (texel > 0)
+			{
+				// Other textured rectangles
+				ColorInt source_color(min_v.col);
+				source_color.a_ = (source_color.a_ * texel) / 255;
+				target_pixel = blend(ColorInt(target_pixel), source_color).toUint32();
 			}
 
-			// Other textured rectangles
-			ColorInt source_color(min_v.col);
-			source_color.a_ = (source_color.a_ * texel) / 255;
-			target_pixel = blend(ColorInt(target_pixel), source_color).toUint32();
+			current_uv.x += delta_uv_per_pixel.x;
 		}
+
+		current_uv.y += delta_uv_per_pixel.y;
+
+		target_pixels += target.width_;
 	}
 }
 
