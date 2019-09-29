@@ -585,86 +585,75 @@ void paint_triangle(
 		{
 			bary += bary_dx;
 
-			{
-				// Inside/outside test:
-				const Point p(kFixedBias * x + kFixedBias / 2, kFixedBias * y + kFixedBias / 2);
-				const Int w0i = (sign * orient2d(p1i, p2i, p)) + bias0i;
-				const Int w1i = (sign * orient2d(p2i, p0i, p)) + bias1i;
-				const Int w2i = (sign * orient2d(p0i, p1i, p)) + bias2i;
+			// Inside/outside test:
+			const Point p(kFixedBias * x + kFixedBias / 2, kFixedBias * y + kFixedBias / 2);
+			const Int w0i = (sign * orient2d(p1i, p2i, p)) + bias0i;
+			const Int w1i = (sign * orient2d(p2i, p0i, p)) + bias1i;
+			const Int w2i = (sign * orient2d(p0i, p1i, p)) + bias2i;
 
-				if (w0i < 0 || w1i < 0 || w2i < 0)
+			if (w0i < 0 || w1i < 0 || w2i < 0)
+			{
+				if (has_been_inside_this_row)
 				{
-					if (has_been_inside_this_row)
-					{
-						// Gives a nice 10% speedup
+					// Gives a nice 10% speedup
 
-						break;
-					}
-					else
-					{
-						continue;
-					}
+					break;
 				}
-			}
-
-			has_been_inside_this_row = true;
-
-			ImU32& target_pixel = target.pixels_[(y * target.width_) + x];
-
-			if (has_uniform_color && !texture)
-			{
-				if (target_pixel != last_target_pixel)
-				{
-					last_target_pixel = target_pixel;
-					target_pixel = blend(ColorInt(target_pixel), v0_col_int).toUint32();
-					last_output = target_pixel;
-				}
-
-				target_pixel = last_output;
-
-				continue;
-			}
-
-			const float w0 = bary.w0_;
-			const float w1 = bary.w1_;
-			const float w2 = bary.w2_;
-
-			ImVec4 src_color;
-
-			if (has_uniform_color)
-			{
-				src_color = c0;
 			}
 			else
 			{
-				src_color = (w0 * c0) + (w1 * c1) + (w2 * c2);
+				has_been_inside_this_row = true;
+
+				ImU32& target_pixel = target.pixels_[(y * target.width_) + x];
+
+				if (has_uniform_color && !texture)
+				{
+					if (target_pixel != last_target_pixel)
+					{
+						last_target_pixel = target_pixel;
+						target_pixel = blend(ColorInt(target_pixel), v0_col_int).toUint32();
+						last_output = target_pixel;
+					}
+
+					target_pixel = last_output;
+				}
+				else
+				{
+					const float w0 = bary.w0_;
+					const float w1 = bary.w1_;
+					const float w2 = bary.w2_;
+
+					ImVec4 src_color;
+
+					if (has_uniform_color)
+					{
+						src_color = c0;
+					}
+					else
+					{
+						src_color = (w0 * c0) + (w1 * c1) + (w2 * c2);
+					}
+
+					if (texture)
+					{
+						const ImVec2 uv = (w0 * v0.uv) + (w1 * v1.uv) + (w2 * v2.uv);
+						src_color.w *= sample_texture(*texture, uv) / 255.0F;
+					}
+
+					if (src_color.w >= 1)
+					{
+						// Opaque, no blending needed:
+
+						target_pixel = color_convert_float4_to_u32(src_color);
+					}
+					else if (src_color.w > 0)
+					{
+						const ImVec4 target_color = color_convert_u32_to_float4(target_pixel);
+						const ImVec4 blended_color = (src_color.w * src_color) + (1.0F - src_color.w) * target_color;
+						target_pixel = color_convert_float4_to_u32(blended_color);
+					}
+				}
 			}
-
-			if (texture)
-			{
-				const ImVec2 uv = (w0 * v0.uv) + (w1 * v1.uv) + (w2 * v2.uv);
-				src_color.w *= sample_texture(*texture, uv) / 255.0F;
-			}
-
-			if (src_color.w <= 0)
-			{
-				// Transparent.
-
-				continue;
-			}
-
-			if (src_color.w >= 1)
-			{
-				// Opaque, no blending needed:
-
-				target_pixel = color_convert_float4_to_u32(src_color);
-
-				continue;
-			}
-
-			const ImVec4 target_color = color_convert_u32_to_float4(target_pixel);
-			const ImVec4 blended_color = (src_color.w * src_color) + (1.0F - src_color.w) * target_color;
-			target_pixel = color_convert_float4_to_u32(blended_color);
 		}
 
 		bary_current_row += bary_dy;
