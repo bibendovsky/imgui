@@ -96,10 +96,10 @@ int main(int, char**)
 
 	const SDL_Color sdl_clear_color =
 	{
-		static_cast<Uint8>(clear_color.x * 255.0F),
-		static_cast<Uint8>(clear_color.y * 255.0F),
-		static_cast<Uint8>(clear_color.z * 255.0F),
-		static_cast<Uint8>(clear_color.w * 255.0F)
+		static_cast<ImU8>(clear_color.x * 255.0F),
+		static_cast<ImU8>(clear_color.y * 255.0F),
+		static_cast<ImU8>(clear_color.z * 255.0F),
+		static_cast<ImU8>(clear_color.w * 255.0F)
 	};
 
 
@@ -216,11 +216,11 @@ int main(int, char**)
 
 			if (sdl_lock_texture_result == 0)
 			{
-				uint32_t* pixels = static_cast<uint32_t*>(raw_pixels);
+				ImU32* pixels = static_cast<ImU32*>(raw_pixels);
 
 				if (pitch == ideal_pitch)
 				{
-					const uint32_t* const src_pixels = &imgui_sw::color_buffer_[0];
+					const ImU32* const src_pixels = &imgui_sw::color_buffer_[0];
 
 					std::uninitialized_copy(
 						src_pixels,
@@ -232,7 +232,7 @@ int main(int, char**)
 				{
 					for (int i = 0; i < fb_height; ++i)
 					{
-						const uint32_t* const src_pixels = &imgui_sw::color_buffer_[i * fb_width];
+						const ImU32* const src_pixels = &imgui_sw::color_buffer_[i * fb_width];
 
 						std::uninitialized_copy(
 							src_pixels,
@@ -250,7 +250,7 @@ int main(int, char**)
 			std::fill(
 				imgui_sw::color_buffer_.begin(),
 				imgui_sw::color_buffer_.end(),
-				uint32_t()
+				ImU32()
 			);
 		}
 
