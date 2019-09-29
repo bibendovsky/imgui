@@ -544,8 +544,8 @@ void paint_triangle(
 			min_x_i + (0.5F * target.scale_.x),
 			min_y_i + (0.5F * target.scale_.y));
 
-		const ImVec2 dx = ImVec2(1, 0);
-		const ImVec2 dy = ImVec2(0, 1);
+		static const ImVec2 dx = ImVec2(1, 0);
+		static const ImVec2 dy = ImVec2(0, 1);
 
 		const float w0_topleft = barycentric(p1, p2, topleft);
 		const float w1_topleft = barycentric(p2, p0, topleft);
@@ -559,9 +559,9 @@ void paint_triangle(
 		const float w1_dy = barycentric(p2, p0, topleft + dy) - w1_topleft;
 		const float w2_dy = barycentric(p0, p1, topleft + dy) - w2_topleft;
 
-		const Barycentric bary_0(1, 0, 0);
-		const Barycentric bary_1(0, 1, 0);
-		const Barycentric bary_2(0, 0, 1);
+		static const Barycentric bary_0(1, 0, 0);
+		static const Barycentric bary_1(0, 1, 0);
+		static const Barycentric bary_2(0, 0, 1);
 
 		const float inv_area = 1 / rect_area;
 
@@ -593,6 +593,10 @@ void paint_triangle(
 	ImU32 last_target_pixel = 0;
 	ImU32 last_output = blend_0_x(v0_col_int).toUint32();
 
+	Point p((kFixedBias * min_x_i) + kFixedBias / 2, (kFixedBias * min_y_i) + kFixedBias / 2);
+
+	ImU32* target_pixels = &target.pixels_[min_y_i * target.width_];
+
 	for (int y = min_y_i; y < max_y_i; ++y)
 	{
 		Barycentric bary;
@@ -603,8 +607,6 @@ void paint_triangle(
 		}
 
 		bool has_been_inside_this_row = false;
-
-		const Point p((kFixedBias * min_x_i) + kFixedBias / 2, (kFixedBias * y) + kFixedBias / 2);
 
 		Int w0i = (sign * orient2d(p1i, p2i, p)) + bias0i;
 		const Int d_w0i = kFixedBias * sign * (p1i.y_ - p2i.y_);
@@ -635,7 +637,7 @@ void paint_triangle(
 			{
 				has_been_inside_this_row = true;
 
-				ImU32& target_pixel = target.pixels_[(y * target.width_) + x];
+				ImU32& target_pixel = target_pixels[x];
 
 				if (has_uniform_color && !texture)
 				{
@@ -690,6 +692,10 @@ void paint_triangle(
 			w1i += d_w1i;
 			w2i += d_w2i;
 		}
+
+		target_pixels += target.width_;
+
+		p.y_ += kFixedBias;
 
 		if (use_bary)
 		{
