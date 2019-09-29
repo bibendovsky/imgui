@@ -484,7 +484,7 @@ void paint_triangle(
 	// Can be positive or negative depending on winding order
 	const float rect_area = barycentric(p0, p1, p2);
 
-	if (rect_area == 0.0f)
+	if (rect_area == 0)
 	{
 		return;
 	}
@@ -506,8 +506,8 @@ void paint_triangle(
 	// Integer bounding box [min, max):
 	int min_x_i = static_cast<int>(min_x_f);
 	int min_y_i = static_cast<int>(min_y_f);
-	int max_x_i = static_cast<int>(max_x_f + 1.0F);
-	int max_y_i = static_cast<int>(max_y_f + 1.0F);
+	int max_x_i = static_cast<int>(max_x_f + 1);
+	int max_y_i = static_cast<int>(max_y_f + 1);
 
 	// Clip against render target:
 	min_x_i = std::max(min_x_i, 0);
@@ -644,14 +644,14 @@ void paint_triangle(
 				src_color.w *= sample_texture(*texture, uv) / 255.0F;
 			}
 
-			if (src_color.w <= 0.0f)
+			if (src_color.w <= 0)
 			{
 				// Transparent.
 
 				continue;
 			}
 
-			if (src_color.w >= 1.0F)
+			if (src_color.w >= 1)
 			{
 				// Opaque, no blending needed:
 
