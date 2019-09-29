@@ -99,7 +99,7 @@ struct ColorInt
 
 
 ColorInt blend_0_x(
-	const ColorInt source)
+	const ColorInt& source)
 {
 	return ColorInt(
 		0, // Whatever.
@@ -110,8 +110,8 @@ ColorInt blend_0_x(
 }
 
 ColorInt blend(
-	const ColorInt target,
-	const ColorInt source)
+	const ColorInt& target,
+	const ColorInt& source)
 {
 	return ColorInt(
 		0, // Whatever.
@@ -277,7 +277,7 @@ Int as_int(
 }
 
 Point as_point(
-	const ImVec2 v)
+	const ImVec2& v)
 {
 	return Point(as_int(v.x), as_int(v.y));
 }
