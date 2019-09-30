@@ -623,10 +623,22 @@ void paint_triangle(
 
 	Point p((fixed_bias * min_x_i) + fixed_bias / 2, (fixed_bias * min_y_i) + fixed_bias / 2);
 
-	ImU32* target_pixels = &target.pixels_[min_y_i * target.width_];
+	ImU32* base_target_pixels = &target.pixels_[(min_y_i * target.width_) + min_x_i];
 
-	for (int y = min_y_i; y < max_y_i; ++y)
+	ImVec4 src_color;
+
+	if (has_uniform_color)
 	{
+		src_color = c0;
+	}
+
+	const int width = max_x_i - min_x_i;
+	const int height = max_y_i - min_y_i;
+
+	for (int y = 0; y < height; ++y)
+	{
+		ImU32* target_pixels = base_target_pixels;
+
 		Barycentric bary;
 
 		if (use_bary)
@@ -645,7 +657,7 @@ void paint_triangle(
 		Int w2i = (sign * orient2d(p0i, p1i, p)) + bias2i;
 		const Int d_w2i = fixed_bias * sign * (p0i.y_ - p1i.y_);
 
-		for (int x = min_x_i; x < max_x_i; ++x)
+		for (int x = 0; x < width; ++x)
 		{
 			if (use_bary)
 			{
@@ -665,7 +677,7 @@ void paint_triangle(
 			{
 				has_been_inside_this_row = true;
 
-				ImU32& target_pixel = target_pixels[x];
+				ImU32& target_pixel = *target_pixels;
 
 				if (has_uniform_color && !texture)
 				{
@@ -684,13 +696,7 @@ void paint_triangle(
 					const float w1 = bary.w1_;
 					const float w2 = bary.w2_;
 
-					ImVec4 src_color;
-
-					if (has_uniform_color)
-					{
-						src_color = c0;
-					}
-					else
+					if (!has_uniform_color)
 					{
 						src_color = (w0 * c0) + (w1 * c1) + (w2 * c2);
 					}
@@ -719,9 +725,11 @@ void paint_triangle(
 			w0i += d_w0i;
 			w1i += d_w1i;
 			w2i += d_w2i;
+
+			++target_pixels;
 		}
 
-		target_pixels += target.width_;
+		base_target_pixels += target.width_;
 
 		p.y_ += fixed_bias;
 
