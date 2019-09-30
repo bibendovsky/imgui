@@ -346,7 +346,7 @@ float barycentric(
 	return ((b.x - a.x) * (point.y - a.y)) - ((b.y - a.y) * (point.x - a.x));
 }
 
-ImU8 sample_texture(
+ImU32 sample_texture(
 	const Texture& texture,
 	const ImVec2& uv)
 {
@@ -359,7 +359,9 @@ ImU8 sample_texture(
 	const int tx = static_cast<int>((uv.x * w_1) + 0.5F);
 	const int ty = static_cast<int>((uv.y * h_1) + 0.5F);
 
-	return texture.pixels_[(ty * texture.width_) + tx];
+	const ImU8 texel_8 = texture.pixels_[(ty * texture.width_) + tx];
+
+	return static_cast<ImU32>(texel_8) << IM_COL32_A_SHIFT;
 }
 
 void paint_uniform_rectangle(
@@ -497,17 +499,18 @@ void paint_uniform_textured_rectangle(
 		{
 			ImU32& target_pixel = *dst_pixels++;
 
-			const ImU8 texel = sample_texture(texture, current_uv);
+			const ImU32 texel_32 = sample_texture(texture, current_uv);
+			const ImU8 texel_alpha = static_cast<ImU8>(texel_32 >> IM_COL32_A_SHIFT);
 
-			if (texel == 255)
+			if (texel_alpha == 255)
 			{
 				target_pixel = min_v.col;
 			}
-			else if (texel > 0)
+			else if (texel_alpha > 0)
 			{
 				// Other textured rectangles
 				ColorInt source_color(base_source_color);
-				source_color.a_ = (source_color.a_ * texel) / 255;
+				source_color.a_ = (source_color.a_ * texel_alpha) / 255;
 				target_pixel = blend(ColorInt(target_pixel), source_color).toUint32();
 			}
 
@@ -738,7 +741,9 @@ void paint_triangle(
 					if (texture)
 					{
 						const ImVec2 uv = (w0 * v0.uv) + (w1 * v1.uv) + (w2 * v2.uv);
-						src_color.w *= sample_texture(*texture, uv) / 255.0F;
+						const ImU32 texel_32 = sample_texture(*texture, uv);
+						const ImU8 texel_alpha = static_cast<ImU8>(texel_32 >> IM_COL32_A_SHIFT);
+						src_color.w *= texel_alpha / 255.0F;
 					}
 
 					if (src_color.w >= 1)
