@@ -89,6 +89,20 @@ int main(int, char**)
 	ImGui::StyleColorsDark();
 	//ImGui::StyleColorsClassic();
 
+
+#if 0
+	ImGuiStyle& style = ImGui::GetStyle();
+
+	style.AntiAliasedFill = false;
+	style.AntiAliasedLines = false;
+	style.WindowRounding = 0;
+	style.ChildRounding = 0;
+	style.PopupRounding = 0;
+	style.FrameRounding = 0;
+	style.GrabRounding = 0;
+	style.TabRounding = 0;
+#endif
+
 	// Setup Platform/Renderer bindings
 	ImGui_ImplSDL2_InitForD3D(window);
 	ImGui_ImplSdlSoft_Init();
