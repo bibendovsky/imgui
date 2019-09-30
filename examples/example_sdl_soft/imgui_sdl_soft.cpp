@@ -275,7 +275,7 @@ Int orient2d(
 Int as_int(
 	const float v)
 {
-	return static_cast<Int>(std::floor(v * fixed_bias));
+	return static_cast<Int>(v * fixed_bias);
 }
 
 Point as_point(
@@ -895,7 +895,10 @@ void paint_draw_list(
 
 		if (pcmd.UserCallback)
 		{
-			pcmd.UserCallback(cmd_list, &pcmd);
+			if (pcmd.UserCallback != ImDrawCallback_ResetRenderState)
+			{
+				pcmd.UserCallback(cmd_list, &pcmd);
+			}
 		}
 		else
 		{
