@@ -3,6 +3,8 @@
 //   This software is dual-licensed to the public domain and under the following
 //   license: you are granted a perpetual, irrevocable license to copy, modify,
 //   publish, and distribute this file as you see fit.
+
+
 #include "imgui_sdl_soft.h"
 
 #include <algorithm>
@@ -11,7 +13,7 @@
 #include "imgui.h"
 
 
-namespace imgui_sw
+namespace imgui_soft
 {
 
 
@@ -288,7 +290,7 @@ struct Point
 	}
 };
 
-PointItem orient2d(
+PointItem orient_2d(
 	const Point& a,
 	const Point& b,
 	const Point& c)
@@ -461,7 +463,7 @@ void paint_uniform_textured_rectangle(
 	max_x_i = std::min(max_x_i, target.width_);
 	max_y_i = std::min(max_y_i, target.height_);
 
-	const ImVec2 topleft = ImVec2(
+	const ImVec2 top_left = ImVec2(
 		min_x_i + (0.5F * target.scale_.x),
 		min_y_i + (0.5F * target.scale_.y));
 
@@ -471,13 +473,13 @@ void paint_uniform_textured_rectangle(
 		(max_v.uv.y - min_v.uv.y) / (max_p.y - min_p.y)
 	);
 
-	const ImVec2 uv_topleft
+	const ImVec2 uv_top_left
 	(
-		min_v.uv.x + ((topleft.x - min_v.pos.x) * delta_uv_per_pixel.x),
-		min_v.uv.y + ((topleft.y - min_v.pos.y) * delta_uv_per_pixel.y)
+		min_v.uv.x + ((top_left.x - min_v.pos.x) * delta_uv_per_pixel.x),
+		min_v.uv.y + ((top_left.y - min_v.pos.y) * delta_uv_per_pixel.y)
 	);
 
-	ImVec2 current_uv = uv_topleft;
+	ImVec2 current_uv = uv_top_left;
 	ImU32* base_dst_pixels = &target.pixels_[(min_y_i * target.width_) + min_x_i];
 
 	ColorInt base_source_color(min_v.col);
@@ -489,7 +491,7 @@ void paint_uniform_textured_rectangle(
 	{
 		ImU32* dst_pixels = base_dst_pixels;
 
-		current_uv.x = uv_topleft.x;
+		current_uv.x = uv_top_left.x;
 
 		for (int x = 0; x < width; ++x)
 		{
@@ -590,31 +592,31 @@ void paint_triangle(
 	// ------------------------------------------------------------------------
 	// Set up interpolation of barycentric coordinates:
 
-	Barycentric bary_topleft;
+	Barycentric bary_top_left;
 	Barycentric bary_dx;
 	Barycentric bary_dy;
 	Barycentric bary_current_row;
 
 	if (has_gradient_color)
 	{
-		const ImVec2 topleft = ImVec2(
+		const ImVec2 top_left = ImVec2(
 			min_x_i + (0.5F * target.scale_.x),
 			min_y_i + (0.5F * target.scale_.y));
 
 		static const ImVec2 dx = ImVec2(1, 0);
 		static const ImVec2 dy = ImVec2(0, 1);
 
-		const float w0_topleft = barycentric(p1, p2, topleft);
-		const float w1_topleft = barycentric(p2, p0, topleft);
-		const float w2_topleft = barycentric(p0, p1, topleft);
+		const float w0_top_left = barycentric(p1, p2, top_left);
+		const float w1_top_left = barycentric(p2, p0, top_left);
+		const float w2_top_left = barycentric(p0, p1, top_left);
 
-		const float w0_dx = barycentric(p1, p2, topleft + dx) - w0_topleft;
-		const float w1_dx = barycentric(p2, p0, topleft + dx) - w1_topleft;
-		const float w2_dx = barycentric(p0, p1, topleft + dx) - w2_topleft;
+		const float w0_dx = barycentric(p1, p2, top_left + dx) - w0_top_left;
+		const float w1_dx = barycentric(p2, p0, top_left + dx) - w1_top_left;
+		const float w2_dx = barycentric(p0, p1, top_left + dx) - w2_top_left;
 
-		const float w0_dy = barycentric(p1, p2, topleft + dy) - w0_topleft;
-		const float w1_dy = barycentric(p2, p0, topleft + dy) - w1_topleft;
-		const float w2_dy = barycentric(p0, p1, topleft + dy) - w2_topleft;
+		const float w0_dy = barycentric(p1, p2, top_left + dy) - w0_top_left;
+		const float w1_dy = barycentric(p2, p0, top_left + dy) - w1_top_left;
+		const float w2_dy = barycentric(p0, p1, top_left + dy) - w2_top_left;
 
 		static const Barycentric bary_0(1, 0, 0);
 		static const Barycentric bary_1(0, 1, 0);
@@ -622,11 +624,11 @@ void paint_triangle(
 
 		const float inv_area = 1 / rect_area;
 
-		bary_topleft = inv_area * ((w0_topleft * bary_0) + (w1_topleft * bary_1) + (w2_topleft * bary_2));
+		bary_top_left = inv_area * ((w0_top_left * bary_0) + (w1_top_left * bary_1) + (w2_top_left * bary_2));
 		bary_dx = inv_area * ((w0_dx * bary_0) + (w1_dx * bary_1) + (w2_dx * bary_2));
 		bary_dy = inv_area * ((w0_dy * bary_0) + (w1_dy * bary_1) + (w2_dy * bary_2));
 
-		bary_current_row = bary_topleft;
+		bary_current_row = bary_top_left;
 	}
 
 	// ------------------------------------------------------------------------
@@ -679,13 +681,13 @@ void paint_triangle(
 		bool has_been_inside_this_row = false;
 
 
-		PointItem w0i = (sign * orient2d(p1i, p2i, p)) + bias0i;
+		PointItem w0i = (sign * orient_2d(p1i, p2i, p)) + bias0i;
 		const PointItem d_w0i = fixed_bias * sign * (p1i.y_ - p2i.y_);
 
-		PointItem w1i = (sign * orient2d(p2i, p0i, p)) + bias1i;
+		PointItem w1i = (sign * orient_2d(p2i, p0i, p)) + bias1i;
 		const PointItem d_w1i = fixed_bias * sign * (p2i.y_ - p0i.y_);
 
-		PointItem w2i = (sign * orient2d(p0i, p1i, p)) + bias2i;
+		PointItem w2i = (sign * orient_2d(p0i, p1i, p)) + bias2i;
 		const PointItem d_w2i = fixed_bias * sign * (p0i.y_ - p1i.y_);
 
 
@@ -837,13 +839,15 @@ void paint_draw_cmd(
 			const ImDrawVert& v4 = vertices[idx_buffer[i + 4]];
 			const ImDrawVert& v5 = vertices[idx_buffer[i + 5]];
 
-			ImVec2 min;
-			ImVec2 max;
+			ImVec2 min(
+				min3(v0.pos.x, v1.pos.x, v2.pos.x),
+				min3(v0.pos.y, v1.pos.y, v2.pos.y)
+			);
 
-			min.x = min3(v0.pos.x, v1.pos.x, v2.pos.x);
-			min.y = min3(v0.pos.y, v1.pos.y, v2.pos.y);
-			max.x = max3(v0.pos.x, v1.pos.x, v2.pos.x);
-			max.y = max3(v0.pos.y, v1.pos.y, v2.pos.y);
+			ImVec2 max(
+				max3(v0.pos.x, v1.pos.x, v2.pos.x),
+				max3(v0.pos.y, v1.pos.y, v2.pos.y)
+			);
 
 			// Not the prettiest way to do this, but it catches all cases
 			// of a rectangle split into two triangles.
@@ -961,8 +965,10 @@ void paint_imgui(
 	const int width_pixels,
 	const int height_pixels)
 {
-	const float width_points = ImGui::GetIO().DisplaySize.x;
-	const float height_points = ImGui::GetIO().DisplaySize.y;
+	ImGuiIO& io = ImGui::GetIO();
+
+	const float width_points = io.DisplaySize.x;
+	const float height_points = io.DisplaySize.y;
 
 	const ImVec2 scale(width_pixels / width_points, height_pixels / height_points);
 
@@ -984,4 +990,4 @@ void unbind_imgui_painting()
 }
 
 
-} // imgui_sw
+} // imgui_soft

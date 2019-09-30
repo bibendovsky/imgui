@@ -53,19 +53,19 @@ void ImGui_ImplSdlSoft_RenderDrawData(ImDrawData* draw_data)
 	const int height = static_cast<int>(draw_data->DisplaySize.y);
 	const int area = width * height;
 
-	imgui_sw::paint_imgui(color_buffer_, width, height);
+	imgui_soft::paint_imgui(color_buffer_, width, height);
 }
 
 void ImGui_ImplSdlSoft_DestroyFontsTexture()
 {
-	imgui_sw::unbind_imgui_painting();
+	imgui_soft::unbind_imgui_painting();
 	g_FontTexture = 0;
 }
 
 bool ImGui_ImplSdlSoft_CreateDeviceObjects()
 {
 	g_FontTexture = 1;
-	imgui_sw::bind_imgui_painting();
+	imgui_soft::bind_imgui_painting();
 
 	return true;
 }

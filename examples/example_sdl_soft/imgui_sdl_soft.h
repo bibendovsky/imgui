@@ -15,7 +15,7 @@
 #include "imgui.h"
 
 
-namespace imgui_sw
+namespace imgui_soft
 {
 
 
@@ -35,4 +35,4 @@ void paint_imgui(
 void unbind_imgui_painting();
 
 
-} // imgui_sw
+} // imgui_soft
