@@ -11,9 +11,6 @@
 #include "imgui.h"
 
 
-#define POINT_ITEM_IS_FLOAT (0)
-
-
 namespace imgui_sw
 {
 
@@ -112,12 +109,24 @@ ColorInt blend(
 	const ColorInt& target,
 	const ColorInt& source)
 {
+#if 0
 	return ColorInt(
 		0, // Whatever.
 		((source.b_ * source.a_) + (target.b_ * (255 - source.a_))) / 255,
 		((source.g_ * source.a_) + (target.g_ * (255 - source.a_))) / 255,
 		((source.r_ * source.a_) + (target.r_ * (255 - source.a_))) / 255
 	);
+#else
+	// Reduces multiplications by one:
+	// k * A + (1 - k) * B => k * (A - B) + B
+	//
+	return ColorInt(
+		0, // Whatever.
+		((source.a_ * (source.b_ - target.b_)) / 255) + target.b_,
+		((source.a_ * (source.g_ - target.g_)) / 255) + target.g_,
+		((source.a_ * (source.r_ - target.r_)) / 255) + target.r_
+	);
+#endif
 }
 
 // ----------------------------------------------------------------------------
@@ -221,38 +230,46 @@ ImVec4 operator+(
 ImVec4 color_convert_u32_to_float4(
 	const ImU32 in)
 {
-	const float s = 1.0F / 255.0F;
+	static const float s = 1.0F / 255.0F;
 
 	return ImVec4(
 		((in >> IM_COL32_R_SHIFT) & 0xFF) * s,
 		((in >> IM_COL32_G_SHIFT) & 0xFF) * s,
 		((in >> IM_COL32_B_SHIFT) & 0xFF) * s,
-		((in >> IM_COL32_A_SHIFT) & 0xFF) * s);
+		((in >> IM_COL32_A_SHIFT) & 0xFF) * s)
+	;
 }
 
 ImU32 color_convert_float4_to_u32(
 	const ImVec4& in)
 {
+#if 0
 	return
 		(static_cast<ImU32>((in.x * 255.0F) + 0.5F) << IM_COL32_R_SHIFT) |
 		(static_cast<ImU32>((in.y * 255.0F) + 0.5F) << IM_COL32_G_SHIFT) |
 		(static_cast<ImU32>((in.z * 255.0F) + 0.5F) << IM_COL32_B_SHIFT) |
 		(static_cast<ImU32>((in.w * 255.0F) + 0.5F) << IM_COL32_A_SHIFT)
 	;
+#else
+	// Remove one float-point addition.
+	//
+	return
+		(static_cast<ImU32>(in.x * 255) << IM_COL32_R_SHIFT) |
+		(static_cast<ImU32>(in.y * 255) << IM_COL32_G_SHIFT) |
+		(static_cast<ImU32>(in.z * 255) << IM_COL32_B_SHIFT) |
+		(static_cast<ImU32>(in.w * 255) << IM_COL32_A_SHIFT)
+	;
+#endif
 }
 
 // ----------------------------------------------------------------------------
 // For fast and subpixel-perfect triangle rendering we used fixed point arithmetic.
 // To keep the code simple we use 64 bits to avoid overflows.
 
-#if POINT_ITEM_IS_FLOAT
-typedef float PointItem;
-#else // POINT_ITEM_IS_FLOAT
 typedef ImS64 PointItem;
 
 
 static const PointItem fixed_bias = 256;
-#endif // POINT_ITEM_IS_FLOAT
 
 
 struct Point
@@ -279,17 +296,10 @@ PointItem orient2d(
 	return ((b.x_ - a.x_) * (c.y_ - a.y_)) - ((b.y_ - a.y_) * (c.x_ - a.x_));
 }
 
-#if POINT_ITEM_IS_FLOAT
-Point as_point(
-	const ImVec2& v)
-{
-	return Point(static_cast<PointItem>(v.x), static_cast<PointItem>(v.y));
-}
-#else // POINT_ITEM_IS_FLOAT
 PointItem as_int(
 	const float v)
 {
-	return static_cast<PointItem>(v * fixed_bias);
+	return static_cast<PointItem>(v) * fixed_bias;
 }
 
 Point as_point(
@@ -297,7 +307,6 @@ Point as_point(
 {
 	return Point(as_int(v.x), as_int(v.y));
 }
-#endif // POINT_ITEM_IS_FLOAT
 
 // ----------------------------------------------------------------------------
 
@@ -642,11 +651,7 @@ void paint_triangle(
 	ImU32 last_target_pixel = 0;
 	ImU32 last_output = blend_0_x(v0_col_int).toUint32();
 
-#if POINT_ITEM_IS_FLOAT
-	Point p(static_cast<PointItem>(min_x_i), static_cast<PointItem>(min_y_i));
-#else // POINT_ITEM_IS_FLOAT
 	Point p((fixed_bias * min_x_i) + fixed_bias / 2, (fixed_bias * min_y_i) + fixed_bias / 2);
-#endif // POINT_ITEM_IS_FLOAT
 
 	ImU32* base_dst_pixels = &target.pixels_[(min_y_i * target.width_) + min_x_i];
 
@@ -675,28 +680,13 @@ void paint_triangle(
 
 
 		PointItem w0i = (sign * orient2d(p1i, p2i, p)) + bias0i;
-
-#if POINT_ITEM_IS_FLOAT
-		const PointItem d_w0i = sign * (p1i.y_ - p2i.y_);
-#else // POINT_ITEM_IS_FLOAT
 		const PointItem d_w0i = fixed_bias * sign * (p1i.y_ - p2i.y_);
-#endif // POINT_ITEM_IS_FLOAT
 
 		PointItem w1i = (sign * orient2d(p2i, p0i, p)) + bias1i;
-
-#if POINT_ITEM_IS_FLOAT
-		const PointItem d_w1i = sign * (p2i.y_ - p0i.y_);
-#else // POINT_ITEM_IS_FLOAT
 		const PointItem d_w1i = fixed_bias * sign * (p2i.y_ - p0i.y_);
-#endif // POINT_ITEM_IS_FLOAT
 
 		PointItem w2i = (sign * orient2d(p0i, p1i, p)) + bias2i;
-
-#if POINT_ITEM_IS_FLOAT
-		const PointItem d_w2i = sign * (p0i.y_ - p1i.y_);
-#else // POINT_ITEM_IS_FLOAT
 		const PointItem d_w2i = fixed_bias * sign * (p0i.y_ - p1i.y_);
-#endif // POINT_ITEM_IS_FLOAT
 
 
 		for (int x = 0; x < width; ++x)
@@ -773,11 +763,7 @@ void paint_triangle(
 
 		base_dst_pixels += target.width_;
 
-#if POINT_ITEM_IS_FLOAT
-		++p.y_;
-#else // POINT_ITEM_IS_FLOAT
 		p.y_ += fixed_bias;
-#endif // POINT_ITEM_IS_FLOAT
 
 		if (has_gradient_color)
 		{
