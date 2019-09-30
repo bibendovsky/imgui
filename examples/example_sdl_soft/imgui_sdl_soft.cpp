@@ -354,38 +354,39 @@ void paint_uniform_rectangle(
 	max_x_i = std::min(max_x_i, target.width_);
 	max_y_i = std::min(max_y_i, target.height_);
 
+	const int width = max_x_i - min_x_i;
+	const int height = max_y_i - min_y_i;
+
+	ImU32* base_dst_pixels = &target.pixels_[(min_y_i * target.width_) + min_x_i];
+
 	if (color.a_ >= 255)
 	{
 		const ImU32 target_color = color.toUint32();
 
-		const int line_width = max_x_i - min_x_i;
-
-		ImU32* target_pixels = &target.pixels_[(min_y_i * target.width_) + min_x_i];
-
-		for (int y = min_y_i; y < max_y_i; ++y)
+		for (int y = 0; y < height; ++y)
 		{
 			std::uninitialized_fill(
-				target_pixels,
-				target_pixels + line_width,
+				base_dst_pixels,
+				base_dst_pixels + width,
 				target_color
 			);
 
-			target_pixels += target.width_;
+			base_dst_pixels += target.width_;
 		}
 	}
 	else
 	{
-		ImU32* target_pixels = &target.pixels_[(min_y_i * target.width_)];
-
 		// We often blend the same colors over and over again, so optimize for this (saves 25% total cpu):
-		ImU32 last_target_pixel = target_pixels[min_x_i];
+		ImU32 last_target_pixel = *base_dst_pixels;
 		ImU32 last_output = blend(ColorInt(last_target_pixel), color).toUint32();
 
-		for (int y = min_y_i; y < max_y_i; ++y)
+		for (int y = 0; y < height; ++y)
 		{
-			for (int x = min_x_i; x < max_x_i; ++x)
+			ImU32* dst_pixels = base_dst_pixels;
+
+			for (int x = 0; x < width; ++x)
 			{
-				ImU32& target_pixel = target_pixels[x];
+				ImU32& target_pixel = *dst_pixels++;
 
 				if (target_pixel != last_target_pixel)
 				{
@@ -397,7 +398,7 @@ void paint_uniform_rectangle(
 				target_pixel = last_output;
 			}
 
-			target_pixels += target.width_;
+			base_dst_pixels += target.width_;
 		}
 	}
 }
@@ -453,15 +454,22 @@ void paint_uniform_textured_rectangle(
 	);
 
 	ImVec2 current_uv = uv_topleft;
-	ImU32* target_pixels = &target.pixels_[min_y_i * target.width_];
+	ImU32* base_dst_pixels = &target.pixels_[(min_y_i * target.width_) + min_x_i];
 
-	for (int y = min_y_i; y < max_y_i; ++y)
+	ColorInt base_source_color(min_v.col);
+
+	const int width = max_x_i - min_x_i;
+	const int height = max_y_i - min_y_i;
+
+	for (int y = 0; y < height; ++y)
 	{
+		ImU32* dst_pixels = base_dst_pixels;
+
 		current_uv.x = uv_topleft.x;
 
-		for (int x = min_x_i; x < max_x_i; ++x)
+		for (int x = 0; x < width; ++x)
 		{
-			ImU32& target_pixel = target_pixels[x];
+			ImU32& target_pixel = *dst_pixels++;
 
 			const ImU8 texel = sample_texture(texture, current_uv);
 
@@ -472,7 +480,7 @@ void paint_uniform_textured_rectangle(
 			else if (texel > 0)
 			{
 				// Other textured rectangles
-				ColorInt source_color(min_v.col);
+				ColorInt source_color(base_source_color);
 				source_color.a_ = (source_color.a_ * texel) / 255;
 				target_pixel = blend(ColorInt(target_pixel), source_color).toUint32();
 			}
@@ -482,7 +490,7 @@ void paint_uniform_textured_rectangle(
 
 		current_uv.y += delta_uv_per_pixel.y;
 
-		target_pixels += target.width_;
+		base_dst_pixels += target.width_;
 	}
 }
 
@@ -620,7 +628,7 @@ void paint_triangle(
 
 	Point p((fixed_bias * min_x_i) + fixed_bias / 2, (fixed_bias * min_y_i) + fixed_bias / 2);
 
-	ImU32* base_target_pixels = &target.pixels_[(min_y_i * target.width_) + min_x_i];
+	ImU32* base_dst_pixels = &target.pixels_[(min_y_i * target.width_) + min_x_i];
 
 	ImVec4 src_color;
 
@@ -634,7 +642,7 @@ void paint_triangle(
 
 	for (int y = 0; y < height; ++y)
 	{
-		ImU32* target_pixels = base_target_pixels;
+		ImU32* dst_pixels = base_dst_pixels;
 
 		Barycentric bary;
 
@@ -674,7 +682,7 @@ void paint_triangle(
 			{
 				has_been_inside_this_row = true;
 
-				ImU32& target_pixel = *target_pixels;
+				ImU32& target_pixel = *dst_pixels;
 
 				if (has_uniform_color && !texture)
 				{
@@ -723,10 +731,10 @@ void paint_triangle(
 			w1i += d_w1i;
 			w2i += d_w2i;
 
-			++target_pixels;
+			++dst_pixels;
 		}
 
-		base_target_pixels += target.width_;
+		base_dst_pixels += target.width_;
 
 		p.y_ += fixed_bias;
 
