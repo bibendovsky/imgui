@@ -531,7 +531,7 @@ void paint_triangle(
 
 	// ------------------------------------------------------------------------
 	const bool has_uniform_color = (v0.col == v1.col && v0.col == v2.col);
-	const bool use_bary = (!has_uniform_color || texture);
+	const bool has_gradient_color = (!has_uniform_color || texture);
 
 	const ImVec4 c0 = color_convert_u32_to_float4(v0.col);
 	const ImVec4 c1 = (has_uniform_color ? ImVec4() : color_convert_u32_to_float4(v1.col));
@@ -571,7 +571,7 @@ void paint_triangle(
 	Barycentric bary_dy;
 	Barycentric bary_current_row;
 
-	if (use_bary)
+	if (has_gradient_color)
 	{
 		const ImVec2 topleft = ImVec2(
 			min_x_i + (0.5F * target.scale_.x),
@@ -646,7 +646,7 @@ void paint_triangle(
 
 		Barycentric bary;
 
-		if (use_bary)
+		if (has_gradient_color)
 		{
 			bary = bary_current_row;
 		}
@@ -664,7 +664,7 @@ void paint_triangle(
 
 		for (int x = 0; x < width; ++x)
 		{
-			if (use_bary)
+			if (has_gradient_color)
 			{
 				bary += bary_dx;
 			}
@@ -738,7 +738,7 @@ void paint_triangle(
 
 		p.y_ += fixed_bias;
 
-		if (use_bary)
+		if (has_gradient_color)
 		{
 			bary_current_row += bary_dy;
 		}
