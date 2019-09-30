@@ -7,9 +7,11 @@
 
 #include <algorithm>
 #include <cmath>
-#include <vector>
 
 #include "imgui.h"
+
+
+#define POINT_ITEM_IS_FLOAT (0)
 
 
 namespace imgui_sw
@@ -243,20 +245,25 @@ ImU32 color_convert_float4_to_u32(
 // For fast and subpixel-perfect triangle rendering we used fixed point arithmetic.
 // To keep the code simple we use 64 bits to avoid overflows.
 
-typedef ImS64 Int;
+#if POINT_ITEM_IS_FLOAT
+typedef float PointItem;
+#else // POINT_ITEM_IS_FLOAT
+typedef ImS64 PointItem;
 
-static const Int fixed_bias = 256;
+
+static const PointItem fixed_bias = 256;
+#endif // POINT_ITEM_IS_FLOAT
 
 
 struct Point
 {
-	Int x_;
-	Int y_;
+	PointItem x_;
+	PointItem y_;
 
 
 	Point(
-		const Int x,
-		const Int y)
+		const PointItem x,
+		const PointItem y)
 		:
 		x_(x),
 		y_(y)
@@ -264,7 +271,7 @@ struct Point
 	}
 };
 
-Int orient2d(
+PointItem orient2d(
 	const Point& a,
 	const Point& b,
 	const Point& c)
@@ -272,10 +279,17 @@ Int orient2d(
 	return ((b.x_ - a.x_) * (c.y_ - a.y_)) - ((b.y_ - a.y_) * (c.x_ - a.x_));
 }
 
-Int as_int(
+#if POINT_ITEM_IS_FLOAT
+Point as_point(
+	const ImVec2& v)
+{
+	return Point(static_cast<PointItem>(v.x), static_cast<PointItem>(v.y));
+}
+#else // POINT_ITEM_IS_FLOAT
+PointItem as_int(
 	const float v)
 {
-	return static_cast<Int>(v * fixed_bias);
+	return static_cast<PointItem>(v * fixed_bias);
 }
 
 Point as_point(
@@ -283,6 +297,7 @@ Point as_point(
 {
 	return Point(as_int(v.x), as_int(v.y));
 }
+#endif // POINT_ITEM_IS_FLOAT
 
 // ----------------------------------------------------------------------------
 
@@ -608,7 +623,8 @@ void paint_triangle(
 	// ------------------------------------------------------------------------
 	// For pixel-perfect inside/outside testing:
 
-	const int sign = rect_area > 0 ? 1 : -1; // winding order?
+	// winding order?
+	const PointItem sign = rect_area > 0 ? static_cast<PointItem>(1) : static_cast<PointItem>(-1);
 
 	const int bias0i = is_dominant_edge(p2 - p1) ? 0 : -1;
 	const int bias1i = is_dominant_edge(p0 - p2) ? 0 : -1;
@@ -626,7 +642,11 @@ void paint_triangle(
 	ImU32 last_target_pixel = 0;
 	ImU32 last_output = blend_0_x(v0_col_int).toUint32();
 
+#if POINT_ITEM_IS_FLOAT
+	Point p(static_cast<PointItem>(min_x_i), static_cast<PointItem>(min_y_i));
+#else // POINT_ITEM_IS_FLOAT
 	Point p((fixed_bias * min_x_i) + fixed_bias / 2, (fixed_bias * min_y_i) + fixed_bias / 2);
+#endif // POINT_ITEM_IS_FLOAT
 
 	ImU32* base_dst_pixels = &target.pixels_[(min_y_i * target.width_) + min_x_i];
 
@@ -653,14 +673,31 @@ void paint_triangle(
 
 		bool has_been_inside_this_row = false;
 
-		Int w0i = (sign * orient2d(p1i, p2i, p)) + bias0i;
-		const Int d_w0i = fixed_bias * sign * (p1i.y_ - p2i.y_);
 
-		Int w1i = (sign * orient2d(p2i, p0i, p)) + bias1i;
-		const Int d_w1i = fixed_bias * sign * (p2i.y_ - p0i.y_);
+		PointItem w0i = (sign * orient2d(p1i, p2i, p)) + bias0i;
 
-		Int w2i = (sign * orient2d(p0i, p1i, p)) + bias2i;
-		const Int d_w2i = fixed_bias * sign * (p0i.y_ - p1i.y_);
+#if POINT_ITEM_IS_FLOAT
+		const PointItem d_w0i = sign * (p1i.y_ - p2i.y_);
+#else // POINT_ITEM_IS_FLOAT
+		const PointItem d_w0i = fixed_bias * sign * (p1i.y_ - p2i.y_);
+#endif // POINT_ITEM_IS_FLOAT
+
+		PointItem w1i = (sign * orient2d(p2i, p0i, p)) + bias1i;
+
+#if POINT_ITEM_IS_FLOAT
+		const PointItem d_w1i = sign * (p2i.y_ - p0i.y_);
+#else // POINT_ITEM_IS_FLOAT
+		const PointItem d_w1i = fixed_bias * sign * (p2i.y_ - p0i.y_);
+#endif // POINT_ITEM_IS_FLOAT
+
+		PointItem w2i = (sign * orient2d(p0i, p1i, p)) + bias2i;
+
+#if POINT_ITEM_IS_FLOAT
+		const PointItem d_w2i = sign * (p0i.y_ - p1i.y_);
+#else // POINT_ITEM_IS_FLOAT
+		const PointItem d_w2i = fixed_bias * sign * (p0i.y_ - p1i.y_);
+#endif // POINT_ITEM_IS_FLOAT
+
 
 		for (int x = 0; x < width; ++x)
 		{
@@ -736,7 +773,11 @@ void paint_triangle(
 
 		base_dst_pixels += target.width_;
 
+#if POINT_ITEM_IS_FLOAT
+		++p.y_;
+#else // POINT_ITEM_IS_FLOAT
 		p.y_ += fixed_bias;
+#endif // POINT_ITEM_IS_FLOAT
 
 		if (has_gradient_color)
 		{
