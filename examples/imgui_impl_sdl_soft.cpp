@@ -11,9 +11,6 @@
 
 
 #include "imgui_impl_sdl_soft.h"
-
-#include <vector>
-
 #include "imgui_sdl_soft.h"
 
 
@@ -56,12 +53,7 @@ void ImGui_ImplSdlSoft_RenderDrawData(ImDrawData* draw_data)
 	const int height = static_cast<int>(draw_data->DisplaySize.y);
 	const int area = width * height;
 
-	if (imgui_sw::color_buffer_.size() < area)
-	{
-		imgui_sw::color_buffer_.resize(area);
-	}
-
-	imgui_sw::paint_imgui(&imgui_sw::color_buffer_[0], width, height);
+	imgui_sw::paint_imgui(color_buffer_, width, height);
 }
 
 void ImGui_ImplSdlSoft_DestroyFontsTexture()

@@ -17,6 +17,9 @@
 #include "imgui_sdl_soft.h"
 
 
+ImU32* color_buffer_ = NULL;
+
+
 // Main code
 int main(int, char**)
 {
@@ -44,6 +47,7 @@ int main(int, char**)
 
 	const int fb_width = 1280;
 	const int fb_height = 720;
+	const int fb_area = fb_width * fb_height;
 
 	const int sdl_create_window_and_renderer_result =
 		SDL_CreateWindowAndRenderer(fb_width, fb_height, window_flags, &window, &renderer);
@@ -94,16 +98,16 @@ int main(int, char**)
 	bool show_another_window = false;
 	ImVec4 clear_color = ImVec4(0.45F, 0.55F, 0.60F, 1.00F);
 
-	const SDL_Color sdl_clear_color =
-	{
-		static_cast<ImU8>(clear_color.x * 255.0F),
-		static_cast<ImU8>(clear_color.y * 255.0F),
-		static_cast<ImU8>(clear_color.z * 255.0F),
-		static_cast<ImU8>(clear_color.w * 255.0F)
-	};
+	const ImU32 im_clear_color =
+		static_cast<ImU32>(clear_color.x * 255.0F) << IM_COL32_R_SHIFT |
+		static_cast<ImU32>(clear_color.y * 255.0F) << IM_COL32_G_SHIFT |
+		static_cast<ImU32>(clear_color.z * 255.0F) << IM_COL32_B_SHIFT |
+		static_cast<ImU32>(clear_color.w * 255.0F) << IM_COL32_A_SHIFT
+	;
 
 
 	// Main loop
+	bool is_failed = false;
 	bool done = false;
 
 	while (!done)
@@ -194,64 +198,37 @@ int main(int, char**)
 
 		SDL_RenderSetViewport(renderer, &sdl_viewport);
 
-		SDL_SetRenderDrawColor(
-			renderer,
-			sdl_clear_color.r,
-			sdl_clear_color.g,
-			sdl_clear_color.b,
-			sdl_clear_color.a
-		);
-
 		SDL_RenderClear(renderer);
 
-		ImGui_ImplSdlSoft_RenderDrawData(ImGui::GetDrawData());
-
-		if (!imgui_sw::color_buffer_.empty())
 		{
 			void* raw_pixels = NULL;
 			int pitch = 0;
-			const int ideal_pitch = fb_width * 4;
+			static const int ideal_pitch = fb_width * 4;
 
 			const int sdl_lock_texture_result = SDL_LockTexture(texture, NULL, &raw_pixels, &pitch);
 
 			if (sdl_lock_texture_result == 0)
 			{
-				ImU32* pixels = static_cast<ImU32*>(raw_pixels);
-
 				if (pitch == ideal_pitch)
 				{
-					const ImU32* const src_pixels = &imgui_sw::color_buffer_[0];
+					color_buffer_ = static_cast<ImU32*>(raw_pixels);
 
-					std::uninitialized_copy(
-						src_pixels,
-						src_pixels + (fb_width * fb_height),
-						pixels
-					);
+					SDL_memset4(color_buffer_, im_clear_color, fb_area);
+
+					ImGui_ImplSdlSoft_RenderDrawData(ImGui::GetDrawData());
+
+					color_buffer_ = NULL;
 				}
 				else
 				{
-					for (int i = 0; i < fb_height; ++i)
-					{
-						const ImU32* const src_pixels = &imgui_sw::color_buffer_[i * fb_width];
+					done = true;
+					is_failed = true;
 
-						std::uninitialized_copy(
-							src_pixels,
-							src_pixels + fb_width,
-							pixels
-						);
-
-						pixels += pitch;
-					}
+					std::cout << "[ERROR] Unsupported pitch value." << std::endl;
 				}
 
 				SDL_UnlockTexture(texture);
 			}
-
-			std::fill(
-				imgui_sw::color_buffer_.begin(),
-				imgui_sw::color_buffer_.end(),
-				ImU32()
-			);
 		}
 
 		const int sdl_render_copy_result = SDL_RenderCopy(renderer, texture, NULL, NULL);
@@ -268,5 +245,5 @@ int main(int, char**)
 	SDL_DestroyWindow(window);
 	SDL_Quit();
 
-	return 0;
+	return is_failed ? 1 : 0;
 }

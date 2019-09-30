@@ -24,6 +24,9 @@
 #include "imgui.h"
 
 
+extern ImU32* color_buffer_;
+
+
 IMGUI_IMPL_API bool ImGui_ImplSdlSoft_Init();
 IMGUI_IMPL_API void ImGui_ImplSdlSoft_Shutdown();
 IMGUI_IMPL_API void ImGui_ImplSdlSoft_NewFrame();

@@ -12,17 +12,11 @@
 //   * It does not support painting with any other texture than the default font texture.
 
 
-#include <vector>
-
 #include "imgui.h"
 
 
 namespace imgui_sw
 {
-
-
-typedef ImVector<ImU32> ColorBuffer;
-extern ColorBuffer color_buffer_;
 
 
 /// Call once a the start of your program.
